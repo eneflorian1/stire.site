@@ -18,7 +18,7 @@ fi
 if command -v npm >/dev/null 2>&1; then
   if [ -d "frontend" ]; then
     echo "Building frontend..."
-    (cd frontend && npm ci && npm run build)
+    (cd frontend && VITE_API_KEY=devkey npm ci && npm run build)
   fi
 else
   echo "npm not found; skipping frontend build"

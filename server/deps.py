@@ -11,15 +11,11 @@ from models import Setting
 def _resolve_expected_api_keys(session: Session) -> Sequence[str]:
     keys: list[str] = []
 
-    setting = session.get(Setting, "gemini_api_key")
-    if setting and setting.value:
-        value = setting.value.strip()
-        if value:
-            keys.append(value)
-
+    # Only use the environment API_KEY for admin authentication
+    # Gemini API key is separate and only used for autoposter functionality
     if API_KEY:
         env_value = API_KEY.strip()
-        if env_value and env_value not in keys:
+        if env_value:
             keys.append(env_value)
 
     return keys

@@ -11,7 +11,7 @@ ExecStart=/usr/bin/python3 -m uvicorn app:app --host 127.0.0.1 --port 8000 --wor
 Restart=always
 Environment=PYTHONUNBUFFERED=1
 Environment=DATABASE_URL=sqlite:///./news.db
-Environment=API_KEY=prodkey
+Environment=API_KEY=devkey
 
 [Install]
 WantedBy=multi-user.target

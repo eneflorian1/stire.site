@@ -34,17 +34,8 @@ export default function Admin() {
   const [tab, setTab] = useState<Tab>('Articole');
 
   useEffect(() => {
-    let disposed = false;
-    getGeminiKey()
-      .then((k) => {
-        if (!disposed) setAdminApiKey(k);
-      })
-      .catch(() => {
-        if (!disposed) setAdminApiKey(undefined);
-      });
-    return () => {
-      disposed = true;
-    };
+    // Initialize admin API key from environment or use default
+    setAdminApiKey(import.meta.env.VITE_API_KEY || 'devkey');
   }, []);
 
   return (
