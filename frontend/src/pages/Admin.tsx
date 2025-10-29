@@ -23,6 +23,7 @@ import {
   autoposterStop,
   autoposterReset,
   setAdminApiKey,
+  getPersistedAdminApiKey,
   type Article,
   type Category,
 } from '../api';
@@ -34,8 +35,17 @@ export default function Admin() {
   const [tab, setTab] = useState<Tab>('Articole');
 
   useEffect(() => {
-    // Initialize admin API key from environment or use default
-    setAdminApiKey(import.meta.env.VITE_API_KEY || 'devkey');
+    let disposed = false;
+    getGeminiKey()
+      .then((k) => {
+        if (!disposed) setAdminApiKey(k);
+      })
+      .catch(() => {
+        if (!disposed) setAdminApiKey(undefined);
+      });
+    return () => {
+      disposed = true;
+    };
   }, []);
 
   return (
@@ -340,7 +350,7 @@ function AnnouncementsAdmin() {
 }
 
 function GeminiAdmin() {
-  const [apiKey, setApiKey] = useState<string>('');
+  const [apiKey, setApiKey] = useState<string>(() => getPersistedAdminApiKey() ?? '');
   const [status, setStatus] = useState<AutoposterStatus | null>(null);
   const [logs, setLogs] = useState<AutoposterLog[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -350,8 +360,16 @@ function GeminiAdmin() {
     setLoading(true);
     try {
       const [k, st, lg] = await Promise.all([getGeminiKey(), getAutoposterStatus(), getAutoposterLogs()]);
-      setApiKey(k);
-      setAdminApiKey(k);
+      const fallbackKey = getPersistedAdminApiKey();
+      const normalizedKey = k && k.trim().length > 0 ? k : fallbackKey || '';
+      setApiKey(normalizedKey);
+      if (k && k.trim().length > 0) {
+        setAdminApiKey(k);
+      } else if (normalizedKey) {
+        setAdminApiKey(normalizedKey, { persist: false });
+      } else {
+        setAdminApiKey(undefined);
+      }
       setStatus(st);
       setRunning(Boolean(st.running));
       setLogs(lg.slice(-50).reverse());
@@ -363,9 +381,20 @@ function GeminiAdmin() {
   useEffect(() => { void reload(); }, [reload]);
 
   async function saveKey() {
-    await setGeminiKey(apiKey.trim());
-    setAdminApiKey(apiKey.trim());
-    alert('Cheia Gemini a fost salvată');
+    const trimmed = apiKey.trim();
+    if (!trimmed) {
+      alert('Introdu o cheie Gemini validă.');
+      return;
+    }
+    try {
+      await setGeminiKey(trimmed);
+      setAdminApiKey(trimmed);
+      setApiKey(trimmed);
+      alert('Cheia Gemini a fost salvată');
+    } catch (error) {
+      console.error('Nu am putut salva cheia Gemini', error);
+      alert('Nu am putut salva cheia Gemini. Verifică cheia și încearcă din nou.');
+    }
   }
 
   async function onStart() {

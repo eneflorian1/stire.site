@@ -4,16 +4,55 @@ export type { Article, ArticleDetail, Category, Topic, TopicStatus, Announcement
 // Use same-origin base path by default (no explicit port). In dev, Vite proxies /api -> backend.
 const API_BASE_PATH: string = (import.meta.env.VITE_API_BASE_PATH as string) || '/api';
 const DEFAULT_ADMIN_API_KEY = import.meta.env.VITE_API_KEY || 'devkey';
+const ADMIN_API_KEY_STORAGE_KEY = 'stirix.admin.apiKey';
+const hasWindow = typeof window !== 'undefined';
+const hasLocalStorage = hasWindow && typeof window.localStorage !== 'undefined';
+
+let persistedAdminApiKey: string | undefined;
 let adminApiKey = DEFAULT_ADMIN_API_KEY;
 
-export function setAdminApiKey(key?: string | null): void {
+if (hasLocalStorage) {
+  try {
+    const stored = window.localStorage.getItem(ADMIN_API_KEY_STORAGE_KEY);
+    if (stored && stored.trim().length > 0) {
+      persistedAdminApiKey = stored.trim();
+      adminApiKey = persistedAdminApiKey;
+    }
+  } catch (_error) {
+    // Ignore storage access issues (private mode, etc.)
+  }
+}
+
+export function setAdminApiKey(key?: string | null, options: { persist?: boolean } = {}): void {
   const trimmed = key?.trim() ?? '';
   adminApiKey = trimmed.length > 0 ? trimmed : DEFAULT_ADMIN_API_KEY;
+
+  const shouldPersist = options.persist ?? true;
+  if (!hasLocalStorage || !shouldPersist) {
+    if (trimmed.length === 0) persistedAdminApiKey = undefined;
+    return;
+  }
+
+  try {
+    if (trimmed.length > 0) {
+      window.localStorage.setItem(ADMIN_API_KEY_STORAGE_KEY, adminApiKey);
+      persistedAdminApiKey = adminApiKey;
+    } else {
+      window.localStorage.removeItem(ADMIN_API_KEY_STORAGE_KEY);
+      persistedAdminApiKey = undefined;
+    }
+  } catch (_error) {
+    // Ignore storage errors (quota exceeded, etc.)
+  }
 }
 
 function getAdminApiKey(): string | undefined {
   const trimmed = adminApiKey?.trim();
   return trimmed && trimmed.length > 0 ? trimmed : undefined;
+}
+
+export function getPersistedAdminApiKey(): string | undefined {
+  return persistedAdminApiKey;
 }
 
 function buildUrl(path: string, params?: Record<string, string | number | undefined>): string {
@@ -188,7 +227,23 @@ export async function getGeminiKey(): Promise<string> {
 }
 
 export async function setGeminiKey(key: string): Promise<void> {
-  await httpPut('/settings/gemini-key', { gemini_api_key: key });
+  const url = buildUrl('/settings/gemini-key');
+  const trimmed = key.trim();
+  const headerKey = trimmed.length > 0 ? trimmed : getAdminApiKey();
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (headerKey) headers['x-api-key'] = headerKey;
+
+  const resp = await fetch(url, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify({ gemini_api_key: key }),
+  });
+  if (!resp.ok) {
+    const txt = await resp.text().catch(() => '');
+    throw new Error(`PUT ${url} failed: ${resp.status} ${txt}`);
+  }
 }
 
 // Autoposter controls
