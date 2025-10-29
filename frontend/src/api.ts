@@ -1,4 +1,5 @@
 import type { Article, ArticleDetail, Category, Topic, TopicStatus, Announcement, AutoposterStatus, AutoposterLog } from './types';
+export type { Article, ArticleDetail, Category, Topic, TopicStatus, Announcement, AutoposterStatus, AutoposterLog } from './types';
 
 // Use same-origin base path by default (no explicit port). In dev, Vite proxies /api -> backend.
 const API_BASE_PATH: string = (import.meta.env.VITE_API_BASE_PATH as string) || '/api';

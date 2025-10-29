@@ -14,6 +14,16 @@ if [ -f "docker-compose.yml" ] || [ -f "compose.yml" ]; then
   docker compose up -d --remove-orphans
 fi
 
+# Build React frontend (Vite) if Node is available
+if command -v npm >/dev/null 2>&1; then
+  if [ -d "frontend" ]; then
+    echo "Building frontend..."
+    (cd frontend && npm ci && npm run build)
+  fi
+else
+  echo "npm not found; skipping frontend build"
+fi
+
 # systemd service (rename to your service name if different)
 if systemctl list-units --type=service | grep -q "stirix.service"; then
   sudo systemctl daemon-reload
