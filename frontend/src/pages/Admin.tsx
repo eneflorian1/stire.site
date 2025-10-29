@@ -22,6 +22,7 @@ import {
   autoposterStart,
   autoposterStop,
   autoposterReset,
+  setAdminApiKey,
   type Article,
   type Category,
 } from '../api';
@@ -344,6 +345,7 @@ function GeminiAdmin() {
     try {
       const [k, st, lg] = await Promise.all([getGeminiKey(), getAutoposterStatus(), getAutoposterLogs()]);
       setApiKey(k);
+      setAdminApiKey(k);
       setStatus(st);
       setRunning(Boolean(st.running));
       setLogs(lg.slice(-50).reverse());
@@ -356,6 +358,7 @@ function GeminiAdmin() {
 
   async function saveKey() {
     await setGeminiKey(apiKey.trim());
+    setAdminApiKey(apiKey.trim());
     alert('Cheia Gemini a fost salvată');
   }
 
