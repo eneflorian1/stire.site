@@ -3,7 +3,18 @@ export type { Article, ArticleDetail, Category, Topic, TopicStatus, Announcement
 
 // Use same-origin base path by default (no explicit port). In dev, Vite proxies /api -> backend.
 const API_BASE_PATH: string = (import.meta.env.VITE_API_BASE_PATH as string) || '/api';
-const API_KEY = import.meta.env.VITE_API_KEY || 'devkey';
+const DEFAULT_ADMIN_API_KEY = import.meta.env.VITE_API_KEY || 'devkey';
+let adminApiKey = DEFAULT_ADMIN_API_KEY;
+
+export function setAdminApiKey(key?: string | null): void {
+  const trimmed = key?.trim() ?? '';
+  adminApiKey = trimmed.length > 0 ? trimmed : DEFAULT_ADMIN_API_KEY;
+}
+
+function getAdminApiKey(): string | undefined {
+  const trimmed = adminApiKey?.trim();
+  return trimmed && trimmed.length > 0 ? trimmed : undefined;
+}
 
 function buildUrl(path: string, params?: Record<string, string | number | undefined>): string {
   const base = (typeof window !== 'undefined' ? window.location.origin : '') + API_BASE_PATH.replace(/\/$/, '');
@@ -25,11 +36,12 @@ async function httpGet<T>(path: string, params?: Record<string, string | number 
 
 async function httpPost<T>(path: string, body: unknown): Promise<T> {
   const url = buildUrl(path);
+  const apiKey = getAdminApiKey();
   const resp = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': API_KEY,
+      ...(apiKey ? { 'x-api-key': apiKey } : {}),
     },
     body: JSON.stringify(body),
   });
@@ -42,11 +54,12 @@ async function httpPost<T>(path: string, body: unknown): Promise<T> {
 
 async function httpPut<T>(path: string, body: unknown): Promise<T> {
   const url = buildUrl(path);
+  const apiKey = getAdminApiKey();
   const resp = await fetch(url, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': API_KEY,
+      ...(apiKey ? { 'x-api-key': apiKey } : {}),
     },
     body: JSON.stringify(body),
   });
@@ -59,9 +72,10 @@ async function httpPut<T>(path: string, body: unknown): Promise<T> {
 
 async function httpDelete(path: string): Promise<void> {
   const url = buildUrl(path);
+  const apiKey = getAdminApiKey();
   const resp = await fetch(url, {
     method: 'DELETE',
-    headers: { 'x-api-key': API_KEY },
+    headers: apiKey ? { 'x-api-key': apiKey } : {},
   });
   if (!resp.ok && resp.status !== 204) {
     const txt = await resp.text().catch(() => '');

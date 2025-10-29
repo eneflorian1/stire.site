@@ -22,6 +22,7 @@ import {
   autoposterStart,
   autoposterStop,
   autoposterReset,
+  setAdminApiKey,
   type Article,
   type Category,
 } from '../api';
@@ -31,6 +32,21 @@ export default function Admin() {
   const tabs = ['Articole', 'Categorii', 'Topicuri', 'Anunțuri', 'Gemini'] as const;
   type Tab = typeof tabs[number];
   const [tab, setTab] = useState<Tab>('Articole');
+
+  useEffect(() => {
+    let disposed = false;
+    getGeminiKey()
+      .then((k) => {
+        if (!disposed) setAdminApiKey(k);
+      })
+      .catch(() => {
+        if (!disposed) setAdminApiKey(undefined);
+      });
+    return () => {
+      disposed = true;
+    };
+  }, []);
+
   return (
     <div className="admin-page">
       <div className="container" style={{ maxWidth: 1100 }}>
@@ -344,6 +360,7 @@ function GeminiAdmin() {
     try {
       const [k, st, lg] = await Promise.all([getGeminiKey(), getAutoposterStatus(), getAutoposterLogs()]);
       setApiKey(k);
+      setAdminApiKey(k);
       setStatus(st);
       setRunning(Boolean(st.running));
       setLogs(lg.slice(-50).reverse());
@@ -356,6 +373,7 @@ function GeminiAdmin() {
 
   async function saveKey() {
     await setGeminiKey(apiKey.trim());
+    setAdminApiKey(apiKey.trim());
     alert('Cheia Gemini a fost salvată');
   }
 
