@@ -1,6 +1,3 @@
-# Production Deploy (VPS: stirix.site – 64.225.49.128) via GitHub Actions + SSH
-
-Automatic deploy on every push to `main`, using SSH and a deploy script executed on the VPS.
 
 ## VPS Details
 
