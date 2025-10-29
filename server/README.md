@@ -1,9 +1,4 @@
-# Stirix Backend (FastAPI + SQLite)
 
-Backend rapid pentru aplicația/website-ul de știri. Expune endpoint-uri pentru listarea, filtrarea și gestionarea articolelor.
-
-## Cerințe
-- Python 3.11+
 
 ## Instalare (Windows / macOS / Linux)
 ```bash
