@@ -5,8 +5,8 @@ APP_DIR="/opt/app"
 cd "$APP_DIR"
 
 git fetch --all --prune
-git reset --hard origin/main
-git pull --rebase
+# Ensure we are on a local branch tracking origin/main, not detached HEAD
+git checkout -B main origin/main
 
 # Docker Compose (optional)
 if [ -f "docker-compose.yml" ] || [ -f "compose.yml" ]; then
