@@ -32,6 +32,21 @@ export default function Admin() {
   const tabs = ['Articole', 'Categorii', 'Topicuri', 'Anunțuri', 'Gemini'] as const;
   type Tab = typeof tabs[number];
   const [tab, setTab] = useState<Tab>('Articole');
+
+  useEffect(() => {
+    let disposed = false;
+    getGeminiKey()
+      .then((k) => {
+        if (!disposed) setAdminApiKey(k);
+      })
+      .catch(() => {
+        if (!disposed) setAdminApiKey(undefined);
+      });
+    return () => {
+      disposed = true;
+    };
+  }, []);
+
   return (
     <div className="admin-page">
       <div className="container" style={{ maxWidth: 1100 }}>

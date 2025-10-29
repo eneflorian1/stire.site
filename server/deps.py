@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Sequence
 
 from fastapi import Depends, Header, HTTPException
 from sqlmodel import Session
@@ -8,21 +8,29 @@ from db import get_session
 from models import Setting
 
 
-def _resolve_expected_api_key(session: Session) -> Optional[str]:
+def _resolve_expected_api_keys(session: Session) -> Sequence[str]:
+    keys: list[str] = []
+
     setting = session.get(Setting, "gemini_api_key")
     if setting and setting.value:
         value = setting.value.strip()
         if value:
-            return value
-    return API_KEY or None
+            keys.append(value)
+
+    if API_KEY:
+        env_value = API_KEY.strip()
+        if env_value and env_value not in keys:
+            keys.append(env_value)
+
+    return keys
 
 
 def require_api_key(
     x_api_key: Optional[str] = Header(default=None),
     session: Session = Depends(get_session),
 ) -> None:
-    expected_key = _resolve_expected_api_key(session)
-    if expected_key and x_api_key != expected_key:
+    expected_keys = _resolve_expected_api_keys(session)
+    if expected_keys and (not x_api_key or x_api_key not in expected_keys):
         raise HTTPException(status_code=401, detail="Invalid or missing API key")
 
 
