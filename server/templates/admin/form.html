@@ -1,0 +1,44 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ 'Creează' if mode == 'create' else 'Editează' }} articol · Admin{% endblock %}
+{% block content %}
+  <div class="card" style="padding:16px">
+    <form method="post" action="{{ '/admin/new' if mode == 'create' else '/admin/' + article.id + '/edit' }}">
+      <div class="grid">
+        <div>
+          <label>Titlu</label><br>
+          <input type="text" name="title" value="{{ article.title if article else '' }}" required style="width:100%" />
+        </div>
+        <div>
+          <label>Sursă</label><br>
+          <input type="text" name="source" value="{{ article.source if article else 'Stirix' }}" required style="width:100%" />
+        </div>
+        <div>
+          <label>Imagine URL</label><br>
+          <input type="text" name="image_url" value="{{ article.image_url if article else 'https://picsum.photos/800/450' }}" required style="width:100%" />
+        </div>
+        <div>
+          <label>Categorie</label><br>
+          <select name="category" required style="width:100%">
+            {% for c in categories %}
+              <option value="{{ c }}" {% if article and article.category == c %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div style="grid-column: 1/-1">
+          <label>Rezumat</label><br>
+          <input type="text" name="summary" value="{{ article.summary if article else '' }}" required style="width:100%" />
+        </div>
+        <div>
+          <label>Publicat la (ISO8601)</label><br>
+          <input type="text" name="published_at" value="{{ article.published_at if article else '' }}" placeholder="YYYY-MM-DDTHH:MM:SSZ" style="width:100%" />
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:16px">
+        <button type="submit">{{ 'Publică' if mode == 'create' else 'Salvează' }}</button>
+        <a class="btn" href="/admin" style="background:#1f2430">Anulează</a>
+      </div>
+    </form>
+  </div>
+{% endblock %}
+
+
