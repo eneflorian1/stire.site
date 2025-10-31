@@ -229,7 +229,7 @@ export async function getGeminiKey(): Promise<string> {
 export async function setGeminiKey(key: string): Promise<void> {
   const url = buildUrl('/settings/gemini-key');
   const trimmed = key.trim();
-  const headerKey = trimmed.length > 0 ? trimmed : getAdminApiKey();
+  const headerKey = getAdminApiKey();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };

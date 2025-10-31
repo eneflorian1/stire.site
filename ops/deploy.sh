@@ -5,6 +5,12 @@ APP_DIR="/opt/app"
 cd "$APP_DIR"
 
 git fetch --all --prune
+
+# Clean any local changes and untracked files that could block checkout
+git reset --hard || true
+# Remove untracked (but keep ignored files like envs)
+git clean -fd || true
+
 # Ensure we are on a local branch tracking origin/main, not detached HEAD
 git checkout -B main origin/main
 

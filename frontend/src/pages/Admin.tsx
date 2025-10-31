@@ -38,10 +38,10 @@ export default function Admin() {
     let disposed = false;
     getGeminiKey()
       .then((k) => {
-        if (!disposed) setAdminApiKey(k);
+        if (!disposed && k && k.trim().length > 0) setAdminApiKey(k);
       })
       .catch(() => {
-        if (!disposed) setAdminApiKey(undefined);
+        // do not clear persisted admin key on error
       });
     return () => {
       disposed = true;
@@ -351,6 +351,7 @@ function AnnouncementsAdmin() {
 
 function GeminiAdmin() {
   const [apiKey, setApiKey] = useState<string>(() => getPersistedAdminApiKey() ?? '');
+  const [adminKey, setAdminKey] = useState<string>(() => getPersistedAdminApiKey() ?? '');
   const [status, setStatus] = useState<AutoposterStatus | null>(null);
   const [logs, setLogs] = useState<AutoposterLog[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -379,6 +380,17 @@ function GeminiAdmin() {
   }, []);
 
   useEffect(() => { void reload(); }, [reload]);
+
+  function saveAdminKey() {
+    const trimmed = adminKey.trim();
+    if (!trimmed) {
+      alert('Introdu o cheie Admin API validă.');
+      return;
+    }
+    setAdminApiKey(trimmed);
+    setAdminKey(trimmed);
+    alert('Cheia Admin a fost salvată');
+  }
 
   async function saveKey() {
     const trimmed = apiKey.trim();
@@ -419,6 +431,14 @@ function GeminiAdmin() {
         <div className="muted">Se încarcă...</div>
       ) : (
         <>
+          <div className="card" style={{ padding: 12, marginBottom: 12 }}>
+            <div className="row" style={{ gap: 8, alignItems: 'center' }}>
+              <input className="input" type="password" placeholder="Admin API Key" value={adminKey} onChange={(e) => setAdminKey(e.target.value)} />
+              <button className="btn" onClick={() => void saveAdminKey()}>Setează</button>
+            </div>
+            <div style={{ marginTop: 8 }} className="muted">Cheia Admin este stocată local (localStorage) în acest browser.</div>
+          </div>
+
           <div className="card" style={{ padding: 12, marginBottom: 12 }}>
             <div className="row" style={{ gap: 8, alignItems: 'center' }}>
               <input className="input" type="password" placeholder="Gemini API Key" value={apiKey} onChange={(e) => setApiKey(e.target.value)} />

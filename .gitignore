@@ -44,6 +44,8 @@ node_modules/
 **/node_modules/
 dist/
 **/dist/
+.tsbuildinfo
+frontend/tsconfig.tsbuildinfo
 .pnp.*
 **/.pnp.*
 .parcel-cache/
