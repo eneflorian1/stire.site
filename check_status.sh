@@ -61,11 +61,16 @@ else
     echo "  ✗ Venv not found at $PROJECT_DIR/server/.venv"
 fi
 
-# Check PM2 logs (last 10 lines)
+# Check PM2 logs (last 30 lines with errors)
 echo ""
-echo "Recent PM2 Logs (last 10 lines):"
+echo "Recent PM2 Error Logs (last 30 lines):"
 echo "----------------------------------------"
-pm2 logs stirix-api --lines 10 --nostream 2>/dev/null || echo "  No logs available"
+pm2 logs stirix-api --err --lines 30 --nostream 2>/dev/null | tail -30 || echo "  No error logs available"
+
+echo ""
+echo "Recent PM2 Output Logs (last 20 lines):"
+echo "----------------------------------------"
+pm2 logs stirix-api --out --lines 20 --nostream 2>/dev/null | tail -20 || echo "  No output logs available"
 
 echo ""
 echo "=========================================="

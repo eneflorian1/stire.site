@@ -312,17 +312,29 @@ if pm2 list | grep -q "stirix-api.*online"; then
     sleep 2
     if curl -s -f http://127.0.0.1:8000/health >/dev/null 2>&1; then
         echo "✓ API is responding on http://127.0.0.1:8000/health"
+        
+        # Test articles endpoint to verify database connectivity
+        echo "Testing articles endpoint..."
+        if curl -s -f http://127.0.0.1:8000/articles >/dev/null 2>&1; then
+            ARTICLE_COUNT=$(curl -s http://127.0.0.1:8000/articles | grep -o '"id"' | wc -l || echo "0")
+            echo "✓ Articles endpoint working (found $ARTICLE_COUNT articles)"
+        else
+            echo "⚠ Warning: Articles endpoint failed - database may have issues"
+            echo "  Checking error logs..."
+            pm2 logs stirix-api --err --lines 50 --nostream | grep -i "error\|exception\|failed" | tail -20 || true
+        fi
     else
         echo "⚠ Warning: API health check failed"
-        echo "  Checking PM2 logs..."
-        pm2 logs stirix-api --lines 20 --nostream || true
+        echo "  Checking PM2 error logs..."
+        pm2 logs stirix-api --err --lines 50 --nostream | tail -30 || true
     fi
 else
     echo "✗ Error: Application failed to start with PM2"
-    echo "  Checking PM2 logs..."
-    pm2 logs stirix-api --lines 30 --nostream || true
+    echo "  Checking PM2 error logs..."
+    pm2 logs stirix-api --err --lines 50 --nostream | tail -50 || true
     echo ""
-    echo "  Try manually: pm2 logs stirix-api"
+    echo "  Full logs: pm2 logs stirix-api"
+    echo "  Error logs only: pm2 logs stirix-api --err"
     exit 1
 fi
 
