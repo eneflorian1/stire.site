@@ -12,8 +12,17 @@ router = APIRouter()
 
 
 @router.get("/announcements", response_model=List[Announcement])
-def list_announcements(session: Session = Depends(get_session)) -> List[Announcement]:
-    return session.exec(select(Announcement).order_by(Announcement.created_at.desc())).all()
+def list_announcements(
+    offset: int = 0,
+    limit: int = 20,
+    session: Session = Depends(get_session)
+) -> List[Announcement]:
+    return session.exec(
+        select(Announcement)
+        .order_by(Announcement.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+    ).all()
 
 
 @router.post("/announcements", response_model=Announcement, dependencies=[Depends(require_api_key)])

@@ -128,7 +128,8 @@ function ArticlesAdmin() {
     if (!confirm('Ștergi articolul?')) return;
     try {
       await deleteArticle(id);
-      await load();
+      // Elimină din listă local fără refresh
+      setArticles(prev => prev.filter(a => a.id !== id));
     } catch (e) {
       alert(String(e));
     }
@@ -202,8 +203,9 @@ function CategoriesAdmin() {
     const name = prompt('Nume categorie:');
     if (!name) return;
     try {
-      await createCategory(name.trim());
-      await load();
+      const newCat = await createCategory(name.trim());
+      // Adaugă la listă local fără refresh
+      setCats(prev => [...prev, newCat]);
     } catch (e) {
       alert(`Nu am putut crea categoria: ${String(e)}`);
     }
@@ -213,8 +215,9 @@ function CategoriesAdmin() {
     const name = prompt('Editează numele categoriei:', c.name);
     if (!name) return;
     try {
-      await updateCategory(c.id, name.trim());
-      await load();
+      const updated = await updateCategory(c.id, name.trim());
+      // Actualizează în listă local fără refresh
+      setCats(prev => prev.map(cat => cat.id === c.id ? updated : cat));
     } catch (e) {
       alert(`Nu am putut edita categoria: ${String(e)}`);
     }
@@ -224,7 +227,8 @@ function CategoriesAdmin() {
     if (!confirm(`Ștergi "${c.name}"?`)) return;
     try {
       await deleteCategory(c.id);
-      await load();
+      // Elimină din listă local fără refresh
+      setCats(prev => prev.filter(cat => cat.id !== c.id));
     } catch (e) {
       alert(`Nu am putut șterge categoria: ${String(e)}`);
     }
@@ -306,8 +310,9 @@ function TopicsAdmin() {
     if (!name) return;
     
     try {
-      await createTopic(name.trim());
-      await load();
+      const newTopic = await createTopic(name.trim());
+      // Adaugă la listă local fără refresh
+      setTopics(prev => [...prev, newTopic]);
     } catch (e) {
       alert(`Nu am putut crea topicul: ${String(e)}`);
     }
@@ -330,8 +335,9 @@ function TopicsAdmin() {
     setImporting(true);
     try {
       // Creează topicurile în paralel cu un număr rezonabil
-      await Promise.all(names.map((n) => createTopic(n)));
-      await load();
+      const newTopics = await Promise.all(names.map((n) => createTopic(n)));
+      // Adaugă la listă local fără refresh
+      setTopics(prev => [...prev, ...newTopics]);
       setBulkText('');
     } catch (e) {
       alert(`Nu am putut importa unele topicuri: ${String(e)}`);
@@ -374,8 +380,9 @@ function TopicsAdmin() {
     if (selectedIds.size === 0) return;
     try {
       await Promise.all(Array.from(selectedIds).map((id) => deleteTopic(id)));
+      // Elimină din listă local fără refresh
+      setTopics(prev => prev.filter(t => !selectedIds.has(t.id)));
       setSelectedIds(new Set());
-      await load();
     } catch (e) {
       alert(`Nu am putut șterge unele topicuri: ${String(e)}`);
     }
@@ -384,8 +391,9 @@ function TopicsAdmin() {
   async function editTopic(t: Topic) {
     const name = prompt('Editează numele topicului:', t.name) ?? t.name;
     try {
-      await updateTopic(t.id, name.trim());
-      await load();
+      const updated = await updateTopic(t.id, name.trim());
+      // Actualizează în listă local fără refresh
+      setTopics(prev => prev.map(topic => topic.id === t.id ? updated : topic));
     } catch (e) {
       alert(`Nu am putut edita topicul: ${String(e)}`);
     }
@@ -395,7 +403,8 @@ function TopicsAdmin() {
     if (!confirm(`Ștergi "${t.name}"?`)) return;
     try {
       await deleteTopic(t.id);
-      await load();
+      // Elimină din listă local fără refresh
+      setTopics(prev => prev.filter(topic => topic.id !== t.id));
     } catch (e) {
       alert(`Nu am putut șterge topicul: ${String(e)}`);
     }
@@ -608,27 +617,46 @@ function AnnouncementsAdmin() {
   const [newTitle, setNewTitle] = useState<string>('');
   const [newUrl, setNewUrl] = useState<string>('');
   const [useAnimatedBanner, setUseAnimatedBanner] = useState<boolean>(false);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [hasMore, setHasMore] = useState<boolean>(true);
+  const itemsPerPage = 20;
 
-  const load = useMemo(() => async () => {
-    setLoading(true);
+  const load = useMemo(() => async (page: number = 1) => {
+    if (page === 1) {
+      setLoading(true);
+    }
     try {
-      const [a, t] = await Promise.all([fetchAnnouncements(), fetchTopics()]);
-      setItems(a);
-      setTopics(t);
+      const offset = (page - 1) * itemsPerPage;
+      const [a, t] = await Promise.all([
+        fetchAnnouncements({ offset, limit: itemsPerPage }),
+        page === 1 ? fetchTopics() : Promise.resolve(null)
+      ]);
+      if (page === 1) {
+        setItems(a);
+        if (t) setTopics(t);
+      } else {
+        setItems(prev => [...prev, ...a]);
+      }
+      setHasMore(a.length === itemsPerPage);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { void load(1); }, [load]);
 
   async function addAnn() {
     const title = prompt('Titlu:');
     if (!title) return;
     const content = prompt('Conținut:') ?? '';
     const topic = prompt('Topic (opțional, nume exact):') || null;
-    await createAnnouncement(title.trim(), content.trim(), topic && topic.length ? topic : null);
-    await load();
+    try {
+      const newAnn = await createAnnouncement(title.trim(), content.trim(), topic && topic.length ? topic : null);
+      // Adaugă la începutul listei fără refresh
+      setItems(prev => [newAnn, ...prev]);
+    } catch (e) {
+      alert(`Nu am putut crea anunțul: ${String(e)}`);
+    }
   }
 
   async function editAnn(a: Announcement) {
@@ -637,14 +665,23 @@ function AnnouncementsAdmin() {
     const topic = prompt('Editează topic (gol pentru fără):', a.topic ?? '') ?? a.topic ?? '';
     const currentValue = a.use_animated_banner ?? false;
     const useAnimated = confirm(`Folosește banner animat? (${currentValue ? 'Curent: DA' : 'Curent: NU'})\nApasă OK pentru DA, Anulează pentru NU`) ? true : false;
-    await updateAnnouncement(a.id, title.trim(), content.trim(), topic.length ? topic : null, useAnimated);
-    await load();
+    try {
+      const updated = await updateAnnouncement(a.id, title.trim(), content.trim(), topic.length ? topic : null, useAnimated);
+      // Actualizează în listă local fără refresh
+      setItems(prev => prev.map(item => item.id === a.id ? updated : item));
+    } catch (e) {
+      alert(`Nu am putut edita anunțul: ${String(e)}`);
+    }
   }
 
   async function delAnn(a: Announcement) {
-    if (!confirm(`Ștergi "${a.title}"?`)) return;
-    await deleteAnnouncement(a.id);
-    await load();
+    try {
+      await deleteAnnouncement(a.id);
+      // Elimină din listă local fără refresh
+      setItems(prev => prev.filter(item => item.id !== a.id));
+    } catch (e) {
+      alert(`Nu am putut șterge anunțul: ${String(e)}`);
+    }
   }
 
   return (
@@ -662,11 +699,12 @@ function AnnouncementsAdmin() {
               if (!t) { alert('Completează titlul bannerului.'); return; }
               if (!useAnimatedBanner && !u) { alert('Completează URL-ul imaginii sau bifează opțiunea pentru banner animat.'); return; }
               try {
-                await createAnnouncement(t, u || '', null, useAnimatedBanner);
+                const newAnn = await createAnnouncement(t, u || '', null, useAnimatedBanner);
                 setNewTitle('');
                 setNewUrl('');
                 setUseAnimatedBanner(false);
-                await load();
+                // Adaugă la începutul listei fără refresh
+                setItems(prev => [newAnn, ...prev]);
               } catch (e) {
                 alert(String(e));
               }
@@ -685,30 +723,47 @@ function AnnouncementsAdmin() {
         </div>
         <div className="muted" style={{ marginTop: 6, fontSize: 12 }}>Acceptă JPG/PNG/GIF. Bannerul de pe desktop este afișat sub știrea principală, cu link către de-vanzare.ro. Dacă bifezi opțiunea, se va afișa bannerul animat în locul imaginii.</div>
       </div>
-      {loading ? (
+      {loading && items.length === 0 ? (
         <div className="muted">Se încarcă...</div>
       ) : (
-        <div style={{ display: 'grid', gap: 8 }}>
-          {items.map((a) => (
-            <div key={a.id} className="card" style={{ padding: 12, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-              <div style={{ maxWidth: '70%' }}>
-                <div className="title">{a.title}</div>
-                {a.topic && <span className="chip" style={{ marginRight: 8 }}>{a.topic}</span>}
-                {a.use_animated_banner && <span className="chip" style={{ marginRight: 8, background: 'rgba(100, 102, 241, 0.15)', color: '#6466f1' }}>Banner animat</span>}
-                <div className="summary" style={{ marginTop: 6 }}>{a.content}</div>
-                {a.content && (a.content.startsWith('http://') || a.content.startsWith('https://')) && !a.use_animated_banner ? (
-                  <div style={{ marginTop: 8 }}>
-                    <img src={a.content} alt={a.title} style={{ maxWidth: 360, maxHeight: 140, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--admin-border)' }} />
-                  </div>
-                ) : null}
+        <>
+          <div style={{ display: 'grid', gap: 8 }}>
+            {items.map((a) => (
+              <div key={a.id} className="card" style={{ padding: 12, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                <div style={{ maxWidth: '70%' }}>
+                  <div className="title">{a.title}</div>
+                  {a.topic && <span className="chip" style={{ marginRight: 8 }}>{a.topic}</span>}
+                  {a.use_animated_banner && <span className="chip" style={{ marginRight: 8, background: 'rgba(100, 102, 241, 0.15)', color: '#6466f1' }}>Banner animat</span>}
+                  <div className="summary" style={{ marginTop: 6 }}>{a.content}</div>
+                  {a.content && (a.content.startsWith('http://') || a.content.startsWith('https://')) && !a.use_animated_banner ? (
+                    <div style={{ marginTop: 8 }}>
+                      <img src={a.content} alt={a.title} style={{ maxWidth: 360, maxHeight: 140, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--admin-border)' }} />
+                    </div>
+                  ) : null}
+                </div>
+                <div className="row" style={{ gap: 8 }}>
+                  <button className="btn secondary" onClick={() => void editAnn(a)}>Editează</button>
+                  <button className="btn danger" onClick={() => void delAnn(a)}>Șterge</button>
+                </div>
               </div>
-              <div className="row" style={{ gap: 8 }}>
-                <button className="btn secondary" onClick={() => void editAnn(a)}>Editează</button>
-                <button className="btn danger" onClick={() => void delAnn(a)}>Șterge</button>
-              </div>
+            ))}
+          </div>
+          {hasMore && (
+            <div style={{ marginTop: 16, textAlign: 'center' }}>
+              <button
+                className="btn secondary"
+                onClick={() => {
+                  const nextPage = currentPage + 1;
+                  setCurrentPage(nextPage);
+                  void load(nextPage);
+                }}
+                disabled={loading}
+              >
+                {loading ? 'Se încarcă...' : 'Încarcă mai multe'}
+              </button>
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -780,7 +835,8 @@ function GeminiAdmin() {
       await setGeminiKey(trimmed);
       setAdminApiKey(trimmed);
       setApiKey(trimmed);
-      alert('Cheia Gemini a fost salvată');
+      // Nu mai afișăm alert, doar actualizăm local
+      // alert('Cheia Gemini a fost salvată');
     } catch (error) {
       console.error('Nu am putut salva cheia Gemini', error);
       alert('Nu am putut salva cheia Gemini. Verifică cheia și încearcă din nou.');
@@ -814,7 +870,7 @@ function GeminiAdmin() {
         const st = await getAutoposterStatus();
         if (!st.running) {
           // S-a oprit cu succes - actualizează fără loading
-          setStatus(st);
+      setStatus(st);
           setRunning(false);
           await refreshStatusSilent();
           return;
@@ -835,9 +891,12 @@ function GeminiAdmin() {
     try {
       const st = await autoposterReset();
       setStatus(st);
-      await reload();
+      setRunning(Boolean(st.running));
+      // Actualizează fără loading pentru a evita "Se încarcă..."
+      await refreshStatusSilent();
     } catch (e) {
       alert(`Nu am putut reseta autoposterul: ${String(e)}`);
+      await refreshStatusSilent();
     }
   }
 

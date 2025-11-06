@@ -175,8 +175,12 @@ export async function importTrends(country: string = 'RO'): Promise<{ status: st
 }
 
 // Announcements
-export async function fetchAnnouncements(): Promise<Announcement[]> {
-  return httpGet<Announcement[]>('/announcements');
+export async function fetchAnnouncements(args: { offset?: number; limit?: number } = {}): Promise<Announcement[]> {
+  const { offset = 0, limit = 20 } = args;
+  return httpGet<Announcement[]>('/announcements', {
+    offset,
+    limit,
+  });
 }
 
 export async function createAnnouncement(title: string, content: string, topic?: string | null, use_animated_banner?: boolean): Promise<Announcement> {
