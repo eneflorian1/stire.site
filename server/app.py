@@ -12,7 +12,7 @@ import models  # ensure models are imported for SQLModel metadata
 autoposter_manager = None
 from config import FLUTTER_WEB_DIR
 from db import engine
-from models import Article, Category
+from models import Article, Category, Setting
 
 from routers_admin import router as admin_router
 from routers_announcements import router as announcements_router
@@ -125,13 +125,18 @@ def on_startup() -> None:
                 try:
                     removed = purge_expired_trends()
                     stats = import_google_trends(country="RO")
-                    # După import, încearcă să pornească autoposterul
+                    # După import, încearcă să pornească autoposterul doar dacă nu a fost oprit manual
                     global autoposter_manager
                     if autoposter_manager is not None:
                         try:
-                            # pornește dacă nu rulează deja
+                            # Verifică dacă utilizatorul a oprit manual autoposterul
+                            with Session(engine) as check_session:
+                                manual_stop_setting = check_session.get(Setting, "autoposter_manual_stop")
+                                manual_stop = manual_stop_setting and manual_stop_setting.value == "true"
+                            
+                            # pornește doar dacă nu rulează deja ȘI nu a fost oprit manual
                             st = autoposter_manager.status()
-                            if not st.running:
+                            if not st.running and not manual_stop:
                                 autoposter_manager.reset()
                                 autoposter_manager.start()
                         except Exception as _:

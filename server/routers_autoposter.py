@@ -4,7 +4,7 @@ from sqlalchemy import delete
 
 from db import get_session
 from deps import require_api_key
-from models import AutoposterStatus, AutoposterLog
+from models import AutoposterStatus, AutoposterLog, Setting
 from fastapi import HTTPException
 
 
@@ -62,6 +62,14 @@ def autoposter_start(session: Session = Depends(get_session)) -> dict:
     ap = _get_autoposter()
     if ap is None:
         raise HTTPException(status_code=503, detail="Autoposter indisponibil")
+    # Resetează flag-ul de oprire manuală când utilizatorul pornește manual
+    setting = session.get(Setting, "autoposter_manual_stop")
+    if setting:
+        setting.value = "false"
+        session.add(setting)
+    else:
+        session.add(Setting(key="autoposter_manual_stop", value="false"))
+    session.commit()
     ap.start()
     _safe_log(session, "info", "▶️ Start manual")
     st = ap.status()
@@ -79,6 +87,14 @@ def autoposter_stop(session: Session = Depends(get_session)) -> dict:
     ap = _get_autoposter()
     if ap is None:
         raise HTTPException(status_code=503, detail="Autoposter indisponibil")
+    # Setează flag-ul de oprire manuală pentru a preveni auto-start-ul
+    setting = session.get(Setting, "autoposter_manual_stop")
+    if setting:
+        setting.value = "true"
+        session.add(setting)
+    else:
+        session.add(Setting(key="autoposter_manual_stop", value="true"))
+    session.commit()
     ap.stop()
     _safe_log(session, "info", "⏸️ Stop manual")
     st = ap.status()

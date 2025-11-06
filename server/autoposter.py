@@ -217,7 +217,8 @@ class Autoposter:
             self._running = False
             self._current_topic = None
         if t is not None:
-            t.join(timeout=2)
+            # Mărim timeout-ul la 10 secunde pentru a permite oprirea completă
+            t.join(timeout=10)
 
     def reset(self) -> None:
         """Resetează contoarele volatile: `items_created` și `last_error`."""
