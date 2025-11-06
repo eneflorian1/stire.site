@@ -6,7 +6,7 @@ After=network.target
 Type=simple
 User=YOUR_USER
 WorkingDirectory=/opt/app/server
-# Use your venv python if you have one, e.g.: /opt/app/server/.venv/bin/python3
+# Use your venv python if you have one, e.g.: /opt/app/.venv/bin/python3
 ExecStart=/usr/bin/python3 -m uvicorn app:app --host 127.0.0.1 --port 8000 --workers 2
 Restart=always
 Environment=PYTHONUNBUFFERED=1

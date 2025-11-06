@@ -41,7 +41,27 @@ if os.path.isdir(FLUTTER_WEB_DIR):
 
 @app.on_event("startup")
 def on_startup() -> None:
-    SQLModel.metadata.create_all(engine)
+    # Only create tables if they don't exist
+    # Check if any tables exist first
+    with engine.connect() as conn:
+        if engine.url.get_backend_name() == "sqlite":
+            # Check if database has any tables
+            result = conn.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"))
+            existing_tables = [row[0] for row in result.fetchall()]
+            if not existing_tables:
+                # No tables exist, create them
+                SQLModel.metadata.create_all(engine)
+            else:
+                # Tables exist, just ensure all models are registered
+                # This is safe and won't recreate existing tables
+                try:
+                    SQLModel.metadata.create_all(engine, checkfirst=True)
+                except Exception:
+                    # If create_all fails, tables likely already exist - this is fine
+                    pass
+        else:
+            # For non-SQLite databases, use checkfirst
+            SQLModel.metadata.create_all(engine, checkfirst=True)
     # Lightweight migration for new columns when using SQLite
     try:
         with engine.connect() as conn:

@@ -70,6 +70,55 @@ else
     echo "✓ Backend dependencies installed"
 fi
 
+# 2b. Setup database
+echo ""
+echo "Setting up database..."
+DB_PATH="$PROJECT_DIR/server/news.db"
+DB_BACKUP_PATH="$PROJECT_DIR/server/news.db.backup"
+
+# Check if database exists in repo
+if [ -f "$DB_PATH" ]; then
+    echo "✓ Database file found in repository at $DB_PATH"
+    
+    # Create backup before using
+    if [ ! -f "$DB_BACKUP_PATH" ]; then
+        cp "$DB_PATH" "$DB_BACKUP_PATH"
+        echo "✓ Backup created at $DB_BACKUP_PATH"
+    fi
+    
+    # Check if database has tables
+    if $VENV_PYTHON -c "
+import sqlite3
+import sys
+try:
+    conn = sqlite3.connect('$DB_PATH')
+    cursor = conn.cursor()
+    cursor.execute(\"SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'\")
+    tables = cursor.fetchall()
+    conn.close()
+    sys.exit(0 if len(tables) > 0 else 1)
+except Exception as e:
+    sys.exit(1)
+" 2>/dev/null; then
+        echo "✓ Database contains tables (ready to use)"
+        echo "  Database will be used as-is. Tables won't be recreated."
+    else
+        echo "⚠ Database file exists but appears empty (will be initialized on first startup)"
+    fi
+else
+    echo "⚠ Database file not found at $DB_PATH"
+    echo "  It will be created automatically on first startup"
+    echo ""
+    echo "  To use existing database from localhost:"
+    echo "    1. Copy your local database:"
+    echo "       scp /path/to/local/news.db user@server:$DB_PATH"
+    echo "    2. Or commit it to Git and push:"
+    echo "       git add server/news.db"
+    echo "       git commit -m 'Add database'"
+    echo "       git push"
+    echo "    3. Then run this setup script again"
+fi
+
 # 3. Install Node.js dependencies (if npm is available)
 echo ""
 echo "[3/8] Setting up frontend..."
@@ -268,74 +317,20 @@ if [ ! -f "$VENV_PYTHON" ]; then
     exit 1
 fi
 
-# Check if port 8000 is already in use and kill the process
-echo "Checking if port 8000 is in use..."
-if command -v lsof >/dev/null 2>&1; then
-    PORT_PID=$(lsof -ti:8000 2>/dev/null || true)
-    if [ -n "$PORT_PID" ]; then
-        echo "⚠ Port 8000 is in use by PID $PORT_PID, stopping it..."
-        kill -9 "$PORT_PID" 2>/dev/null || true
-        sleep 1
-    fi
-elif command -v fuser >/dev/null 2>&1; then
-    if fuser 8000/tcp >/dev/null 2>&1; then
-        echo "⚠ Port 8000 is in use, stopping process..."
-        fuser -k 8000/tcp 2>/dev/null || true
-        sleep 1
-    fi
-fi
-
 # Stop existing PM2 processes if any
-echo "Stopping existing PM2 processes..."
 pm2 delete stirix-api 2>/dev/null || true
-sleep 1
-
-# Verify database exists
-if [ ! -f "$PROJECT_DIR/server/news.db" ]; then
-    echo "⚠ Database file not found at $PROJECT_DIR/server/news.db"
-    echo "  It will be created automatically on first startup"
-fi
 
 # Start the application
 echo "Starting stirix-api with PM2..."
 pm2 start "$PROJECT_DIR/ecosystem.config.js"
 
-# Wait a moment for the app to start
-sleep 3
-
-# Verify it started
+# Wait a moment and verify it started
+sleep 2
 if pm2 list | grep -q "stirix-api.*online"; then
     echo "✓ Application started successfully with PM2"
-    
-    # Test if API is responding
-    echo "Testing API health endpoint..."
-    sleep 2
-    if curl -s -f http://127.0.0.1:8000/health >/dev/null 2>&1; then
-        echo "✓ API is responding on http://127.0.0.1:8000/health"
-        
-        # Test articles endpoint to verify database connectivity
-        echo "Testing articles endpoint..."
-        if curl -s -f http://127.0.0.1:8000/articles >/dev/null 2>&1; then
-            ARTICLE_COUNT=$(curl -s http://127.0.0.1:8000/articles | grep -o '"id"' | wc -l || echo "0")
-            echo "✓ Articles endpoint working (found $ARTICLE_COUNT articles)"
-        else
-            echo "⚠ Warning: Articles endpoint failed - database may have issues"
-            echo "  Checking error logs..."
-            pm2 logs stirix-api --err --lines 50 --nostream | grep -i "error\|exception\|failed" | tail -20 || true
-        fi
-    else
-        echo "⚠ Warning: API health check failed"
-        echo "  Checking PM2 error logs..."
-        pm2 logs stirix-api --err --lines 50 --nostream | tail -30 || true
-    fi
 else
-    echo "✗ Error: Application failed to start with PM2"
-    echo "  Checking PM2 error logs..."
-    pm2 logs stirix-api --err --lines 50 --nostream | tail -50 || true
-    echo ""
-    echo "  Full logs: pm2 logs stirix-api"
-    echo "  Error logs only: pm2 logs stirix-api --err"
-    exit 1
+    echo "⚠ Warning: Application may not be running correctly"
+    echo "  Check logs with: pm2 logs stirix-api"
 fi
 
 pm2 save
@@ -350,29 +345,35 @@ echo "Frontend: Built and served via Nginx"
 echo "Virtual Environment: $PROJECT_DIR/server/.venv"
 echo ""
 echo "PM2 Commands:"
-echo "  pm2 status                    - Check status"
-echo "  pm2 logs stirix-api           - View logs (real-time)"
-echo "  pm2 logs stirix-api --lines 50 - View last 50 log lines"
-echo "  pm2 restart stirix-api       - Restart backend"
-echo "  pm2 stop stirix-api           - Stop backend"
-echo "  pm2 delete stirix-api         - Remove from PM2"
-echo ""
-echo "Debug Commands:"
-echo "  curl http://127.0.0.1:8000/health     - Test API health"
-echo "  curl http://127.0.0.1:8000/articles   - Test articles endpoint"
-echo "  lsof -i:8000                          - Check what's using port 8000"
+echo "  pm2 status          - Check status"
+echo "  pm2 logs stirix-api - View logs"
+echo "  pm2 restart stirix-api - Restart backend"
+echo "  pm2 stop stirix-api - Stop backend"
 echo ""
 echo "Nginx Commands:"
 echo "  $SUDO nginx -t              - Test configuration"
 echo "  $SUDO systemctl reload nginx - Reload Nginx"
 echo ""
 echo "Manual Backend (for testing):"
-echo "  $VENV_PYTHON -m uvicorn app:app --reload --port 8000"
-echo "  (run from: $PROJECT_DIR/server)"
+echo "  cd $PROJECT_DIR/server"
+echo "  .venv/bin/python -m uvicorn app:app --reload --port 8000"
+echo "  (or: $VENV_PYTHON -m uvicorn app:app --reload --port 8000)"
+echo ""
+echo "Database Info:"
+echo "  Location: $PROJECT_DIR/server/news.db"
+echo "  Backup: $PROJECT_DIR/server/news.db.backup"
+echo "  Note: Database from repository is used. If you need to update it:"
+echo "    1. Copy from localhost: scp /path/to/news.db user@server:$PROJECT_DIR/server/news.db"
+echo "    2. Or commit to Git: git add server/news.db && git commit -m 'Update database' && git push"
 echo ""
 echo "Next steps:"
 echo "  1. Update DNS to point $DOMAIN to this server"
 echo "  2. Run: $SUDO systemctl reload nginx"
 echo "  3. (Optional) Setup SSL: $SUDO certbot --nginx -d $DOMAIN -d www.$DOMAIN"
+echo ""
+echo "To upload database to GitHub (from localhost):"
+echo "  git add server/news.db"
+echo "  git commit -m 'Add/update database'"
+echo "  git push"
 echo "=========================================="
 

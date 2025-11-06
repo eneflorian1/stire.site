@@ -81,7 +81,8 @@ venv/
 *.sqlite
 *.sqlite3
 *.db
-server/news.db
+!news.db
+!server/news.db
 
 # -----------------------------
 # Dart / Flutter (app)
