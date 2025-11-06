@@ -268,20 +268,62 @@ if [ ! -f "$VENV_PYTHON" ]; then
     exit 1
 fi
 
+# Check if port 8000 is already in use and kill the process
+echo "Checking if port 8000 is in use..."
+if command -v lsof >/dev/null 2>&1; then
+    PORT_PID=$(lsof -ti:8000 2>/dev/null || true)
+    if [ -n "$PORT_PID" ]; then
+        echo "⚠ Port 8000 is in use by PID $PORT_PID, stopping it..."
+        kill -9 "$PORT_PID" 2>/dev/null || true
+        sleep 1
+    fi
+elif command -v fuser >/dev/null 2>&1; then
+    if fuser 8000/tcp >/dev/null 2>&1; then
+        echo "⚠ Port 8000 is in use, stopping process..."
+        fuser -k 8000/tcp 2>/dev/null || true
+        sleep 1
+    fi
+fi
+
 # Stop existing PM2 processes if any
+echo "Stopping existing PM2 processes..."
 pm2 delete stirix-api 2>/dev/null || true
+sleep 1
+
+# Verify database exists
+if [ ! -f "$PROJECT_DIR/server/news.db" ]; then
+    echo "⚠ Database file not found at $PROJECT_DIR/server/news.db"
+    echo "  It will be created automatically on first startup"
+fi
 
 # Start the application
 echo "Starting stirix-api with PM2..."
 pm2 start "$PROJECT_DIR/ecosystem.config.js"
 
-# Wait a moment and verify it started
-sleep 2
+# Wait a moment for the app to start
+sleep 3
+
+# Verify it started
 if pm2 list | grep -q "stirix-api.*online"; then
     echo "✓ Application started successfully with PM2"
+    
+    # Test if API is responding
+    echo "Testing API health endpoint..."
+    sleep 2
+    if curl -s -f http://127.0.0.1:8000/health >/dev/null 2>&1; then
+        echo "✓ API is responding on http://127.0.0.1:8000/health"
+    else
+        echo "⚠ Warning: API health check failed"
+        echo "  Checking PM2 logs..."
+        pm2 logs stirix-api --lines 20 --nostream || true
+    fi
 else
-    echo "⚠ Warning: Application may not be running correctly"
-    echo "  Check logs with: pm2 logs stirix-api"
+    echo "✗ Error: Application failed to start with PM2"
+    echo "  Checking PM2 logs..."
+    pm2 logs stirix-api --lines 30 --nostream || true
+    echo ""
+    echo "  Try manually: pm2 logs stirix-api"
+    exit 1
 fi
 
 pm2 save
@@ -296,10 +338,17 @@ echo "Frontend: Built and served via Nginx"
 echo "Virtual Environment: $PROJECT_DIR/server/.venv"
 echo ""
 echo "PM2 Commands:"
-echo "  pm2 status          - Check status"
-echo "  pm2 logs stirix-api - View logs"
-echo "  pm2 restart stirix-api - Restart backend"
-echo "  pm2 stop stirix-api - Stop backend"
+echo "  pm2 status                    - Check status"
+echo "  pm2 logs stirix-api           - View logs (real-time)"
+echo "  pm2 logs stirix-api --lines 50 - View last 50 log lines"
+echo "  pm2 restart stirix-api       - Restart backend"
+echo "  pm2 stop stirix-api           - Stop backend"
+echo "  pm2 delete stirix-api         - Remove from PM2"
+echo ""
+echo "Debug Commands:"
+echo "  curl http://127.0.0.1:8000/health     - Test API health"
+echo "  curl http://127.0.0.1:8000/articles   - Test articles endpoint"
+echo "  lsof -i:8000                          - Check what's using port 8000"
 echo ""
 echo "Nginx Commands:"
 echo "  $SUDO nginx -t              - Test configuration"
