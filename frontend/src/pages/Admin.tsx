@@ -736,6 +736,19 @@ function GeminiAdmin() {
     }
   }, []);
 
+  // Funcție pentru actualizare status fără loading (pentru stop/start)
+  const refreshStatusSilent = async () => {
+    try {
+      const [st, lg] = await Promise.all([getAutoposterStatus(), getAutoposterLogs(500)]);
+      setStatus(st);
+      setRunning(Boolean(st.running));
+      setLogs(lg);
+    } catch (e) {
+      // Ignoră erorile la refresh silent
+      console.error('Error refreshing status:', e);
+    }
+  };
+
   useEffect(() => { void reload(); }, [reload]);
 
   function formatTimestamp(ts?: string | null): string {
@@ -779,15 +792,19 @@ function GeminiAdmin() {
       const st = await autoposterStart();
       setStatus(st);
       setRunning(Boolean(st.running));
-      await reload();
+      // Actualizează fără loading pentru a evita "Se încarcă..."
+      await refreshStatusSilent();
     } catch (e) {
       alert(`Nu am putut porni autoposterul: ${String(e)}`);
+      await refreshStatusSilent();
     }
   }
   async function onStop() {
     try {
       // Trimite comanda de stop
       await autoposterStop();
+      // Actualizează imediat statusul local (optimistic update)
+      setRunning(false);
       // Așteaptă puțin pentru ca oprirea să se finalizeze (timeout-ul backend este 10s)
       await new Promise(resolve => setTimeout(resolve, 1200));
       // Verifică statusul de câteva ori până când confirmăm că s-a oprit
@@ -796,22 +813,22 @@ function GeminiAdmin() {
       while (attempts < maxAttempts) {
         const st = await getAutoposterStatus();
         if (!st.running) {
-          // S-a oprit cu succes
+          // S-a oprit cu succes - actualizează fără loading
           setStatus(st);
           setRunning(false);
-          await reload();
+          await refreshStatusSilent();
           return;
         }
         // Mai încă rulează, așteaptă puțin și încearcă din nou
         await new Promise(resolve => setTimeout(resolve, 500));
         attempts++;
       }
-      // Dacă după toate încercările încă rulează, reîncarcă oricum
-      await reload();
+      // Dacă după toate încercările încă rulează, actualizează fără loading
+      await refreshStatusSilent();
     } catch (e) {
       alert(`Nu am putut opri autoposterul: ${String(e)}`);
-      // Reîncarcă statusul chiar dacă a apărut o eroare
-      await reload();
+      // Actualizează statusul chiar dacă a apărut o eroare, fără loading
+      await refreshStatusSilent();
     }
   }
   async function onReset() {
