@@ -1,3 +1,4 @@
+creare env
 pip install -r server/requirements.txt
 
 cd frontend
@@ -11,3 +12,5 @@ uvicorn app:app --reload --port 8000
 
 
 
+chmod +x setup.sh
+./setup.sh
