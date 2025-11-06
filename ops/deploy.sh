@@ -80,6 +80,15 @@ if [ -f "$APP_DIR/ops/nginx/stirix.site" ] && command -v nginx >/dev/null 2>&1; 
     # Replace /opt/app with actual project directory
     sed -i "s|/opt/app|$APP_DIR|g" "/tmp/nginx_${DOMAIN}.conf"
     
+    # If SSL certificates exist (Certbot), uncomment SSL directives in HTTPS server block
+    if [ -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
+      echo "SSL certificates found, enabling SSL configuration..."
+      sed -i "s|# ssl_certificate|ssl_certificate|g" "/tmp/nginx_${DOMAIN}.conf"
+      sed -i "s|# ssl_certificate_key|ssl_certificate_key|g" "/tmp/nginx_${DOMAIN}.conf"
+      sed -i "s|# include /etc/letsencrypt|include /etc/letsencrypt|g" "/tmp/nginx_${DOMAIN}.conf"
+      sed -i "s|# ssl_dhparam|ssl_dhparam|g" "/tmp/nginx_${DOMAIN}.conf"
+    fi
+    
     # Copy to nginx sites-available
     sudo cp "/tmp/nginx_${DOMAIN}.conf" "$NGINX_CONFIG_FILE"
     rm "/tmp/nginx_${DOMAIN}.conf"
@@ -93,6 +102,7 @@ if [ -f "$APP_DIR/ops/nginx/stirix.site" ] && command -v nginx >/dev/null 2>&1; 
       echo "✓ Nginx configuration updated and reloaded"
     else
       echo "⚠ Nginx configuration test failed, not reloading"
+      echo "  Check with: sudo nginx -t"
     fi
   fi
 fi

@@ -1,15 +1,12 @@
-# HTTP server
-# NOTE: If you have HTTPS configured (via certbot), you may have a separate server block
-# that redirects HTTP to HTTPS. In that case, make sure sitemap.xml is accessible
-# on both HTTP and HTTPS, or exclude it from the redirect.
+# HTTP server - redirects to HTTPS except for sitemap.xml
 server {
     listen 80;
     server_name stire.site www.stire.site;
 
     client_max_body_size 20m;
 
-    # Sitemap for Google Search Console (MUST be first, before any redirects)
-    # This ensures sitemap.xml is accessible even if HTTP redirects to HTTPS
+    # Sitemap must be accessible on HTTP (before redirect)
+    # This allows sitemap.xml to work on HTTP even when HTTPS redirect is active
     location = /sitemap.xml {
         proxy_pass http://127.0.0.1:8000/sitemap.xml;
         proxy_http_version 1.1;
@@ -21,9 +18,45 @@ server {
         add_header Content-Type application/xml;
     }
 
+    # Redirect all other requests to HTTPS
+    # NOTE: Certbot will add this automatically, but we exclude sitemap.xml above
+    if ($host = www.stire.site) {
+        return 301 https://$host$request_uri;
+    }
+    if ($host = stire.site) {
+        return 301 https://$host$request_uri;
+    }
+    return 404;
+}
+
+# HTTPS server
+server {
+    listen 443 ssl;
+    server_name stire.site www.stire.site;
+
+    # SSL certificates (managed by Certbot)
+    # ssl_certificate /etc/letsencrypt/live/stire.site/fullchain.pem;
+    # ssl_certificate_key /etc/letsencrypt/live/stire.site/privkey.pem;
+    # include /etc/letsencrypt/options-ssl-nginx.conf;
+    # ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    client_max_body_size 20m;
+
     # Serve React build from Vite
     root /opt/app/frontend/dist;
     index index.html;
+
+    # Sitemap for Google Search Console (MUST be before location / to avoid SPA fallback)
+    location = /sitemap.xml {
+        proxy_pass http://127.0.0.1:8000/sitemap.xml;
+        proxy_http_version 1.1;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_set_header   X-Forwarded-Host $host;
+        add_header Content-Type application/xml;
+    }
 
     # Health check (direct to backend)
     location = /health {
