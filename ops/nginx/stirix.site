@@ -1,6 +1,6 @@
 server {
     listen 80;
-    server_name stirix.site www.stirix.site;
+    server_name stire.site www.stire.site;
 
     client_max_body_size 20m;
 

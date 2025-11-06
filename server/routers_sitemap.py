@@ -7,12 +7,8 @@ from sqlmodel import Session, select
 from db import get_session
 from models import Article
 import re
-import os
 
 router = APIRouter()
-
-# Get base URL from environment or use default
-SITE_URL = os.environ.get("SITE_URL", "https://stirix.site")
 
 
 def _slugify(title: str) -> str:
@@ -28,15 +24,19 @@ def generate_sitemap(request: Request, session: Session = Depends(get_session)) 
     """
     Generate sitemap.xml for Google Search Console.
     Includes homepage, all articles, and static pages.
+    Automatically determines domain from request headers (like setup.sh does).
     """
-    # Use SITE_URL from env if properly set, otherwise infer from request
-    if SITE_URL and SITE_URL.startswith("http"):
-        base_url = SITE_URL.rstrip("/")
-    else:
-        # Infer from request (useful for dev or when SITE_URL not set)
-        scheme = request.url.scheme
-        host = request.headers.get("host", "localhost")
-        base_url = f"{scheme}://{host}"
+    # Determine base URL from request (same approach as setup.sh uses for domain detection)
+    # This ensures it works on any domain without configuration
+    scheme = request.url.scheme
+    host = request.headers.get("host", "localhost")
+    
+    # If we have X-Forwarded-Proto (from nginx), use it for scheme
+    forwarded_proto = request.headers.get("x-forwarded-proto")
+    if forwarded_proto:
+        scheme = forwarded_proto
+    
+    base_url = f"{scheme}://{host}".rstrip("/")
     
     # Get all published articles
     published_col = cast(Any, Article.published_at)

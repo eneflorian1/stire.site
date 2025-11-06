@@ -56,6 +56,47 @@ else
   echo "npm not found; skipping frontend build"
 fi
 
+# Update Nginx configuration if template exists
+if [ -f "$APP_DIR/ops/nginx/stirix.site" ] && command -v nginx >/dev/null 2>&1; then
+  echo "Updating Nginx configuration..."
+  
+  # Detect domain from project directory name (same as setup.sh)
+  PROJECT_NAME="$(basename "$APP_DIR")"
+  DOMAIN="$PROJECT_NAME"
+  
+  NGINX_SITES_AVAILABLE="/etc/nginx/sites-available"
+  NGINX_SITES_ENABLED="/etc/nginx/sites-enabled"
+  NGINX_CONFIG_FILE="$NGINX_SITES_AVAILABLE/$DOMAIN"
+  
+  # Create nginx config from template
+  if [ -f "$APP_DIR/ops/nginx/stirix.site" ]; then
+    # Use existing template and replace domain
+    sed "s/stirix\.site/$DOMAIN/g" "$APP_DIR/ops/nginx/stirix.site" > "/tmp/nginx_${DOMAIN}.conf"
+    # Also replace www.stirix.site with www.$DOMAIN
+    sed -i "s/www\.stirix\.site/www.$DOMAIN/g" "/tmp/nginx_${DOMAIN}.conf"
+    # Also replace stire.site if present
+    sed -i "s/stire\.site/$DOMAIN/g" "/tmp/nginx_${DOMAIN}.conf"
+    sed -i "s/www\.stire\.site/www.$DOMAIN/g" "/tmp/nginx_${DOMAIN}.conf"
+    # Replace /opt/app with actual project directory
+    sed -i "s|/opt/app|$APP_DIR|g" "/tmp/nginx_${DOMAIN}.conf"
+    
+    # Copy to nginx sites-available
+    sudo cp "/tmp/nginx_${DOMAIN}.conf" "$NGINX_CONFIG_FILE"
+    rm "/tmp/nginx_${DOMAIN}.conf"
+    
+    # Create symlink in sites-enabled
+    sudo ln -sf "$NGINX_CONFIG_FILE" "$NGINX_SITES_ENABLED/$DOMAIN"
+    
+    # Test and reload nginx
+    if sudo nginx -t 2>/dev/null; then
+      sudo systemctl reload nginx
+      echo "✓ Nginx configuration updated and reloaded"
+    else
+      echo "⚠ Nginx configuration test failed, not reloading"
+    fi
+  fi
+fi
+
 # systemd service (rename to your service name if different)
 if systemctl list-units --type=service | grep -q "stirix.service"; then
   sudo systemctl daemon-reload
