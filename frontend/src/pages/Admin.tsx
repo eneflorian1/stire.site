@@ -786,12 +786,32 @@ function GeminiAdmin() {
   }
   async function onStop() {
     try {
-      const st = await autoposterStop();
-      setStatus(st);
-      setRunning(Boolean(st.running));
+      // Trimite comanda de stop
+      await autoposterStop();
+      // Așteaptă puțin pentru ca oprirea să se finalizeze (timeout-ul backend este 10s)
+      await new Promise(resolve => setTimeout(resolve, 1200));
+      // Verifică statusul de câteva ori până când confirmăm că s-a oprit
+      let attempts = 0;
+      const maxAttempts = 5;
+      while (attempts < maxAttempts) {
+        const st = await getAutoposterStatus();
+        if (!st.running) {
+          // S-a oprit cu succes
+          setStatus(st);
+          setRunning(false);
+          await reload();
+          return;
+        }
+        // Mai încă rulează, așteaptă puțin și încearcă din nou
+        await new Promise(resolve => setTimeout(resolve, 500));
+        attempts++;
+      }
+      // Dacă după toate încercările încă rulează, reîncarcă oricum
       await reload();
     } catch (e) {
       alert(`Nu am putut opri autoposterul: ${String(e)}`);
+      // Reîncarcă statusul chiar dacă a apărut o eroare
+      await reload();
     }
   }
   async function onReset() {
