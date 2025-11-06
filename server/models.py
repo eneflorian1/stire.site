@@ -16,6 +16,7 @@ class ArticleBase(SQLModel):
 
 class Article(ArticleBase, table=True):
     id: str = Field(default_factory=lambda: str(uuid4()), primary_key=True, index=True)
+    hashtags: Optional[str] = None
 
 
 class ArticleCreate(SQLModel):
@@ -54,6 +55,10 @@ class Topic(SQLModel, table=True):
     name: str = Field(index=True)
     description: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    # Sursă opțională (ex: "google_trends"); None pentru cele introduse manual
+    imported_from: Optional[str] = None
+    # Momentul expirării pentru topicurile temporare (ex: trenduri valabile 24h)
+    expires_at: Optional[datetime] = None
 
 
 class TopicCreate(SQLModel):
@@ -71,6 +76,7 @@ class Announcement(SQLModel, table=True):
     title: str
     content: str
     topic: Optional[str] = None
+    use_animated_banner: bool = Field(default=False)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
@@ -78,12 +84,14 @@ class AnnouncementCreate(SQLModel):
     title: str
     content: str
     topic: Optional[str] = None
+    use_animated_banner: bool = False
 
 
 class AnnouncementUpdate(SQLModel):
     title: Optional[str] = None
     content: Optional[str] = None
     topic: Optional[str] = None
+    use_animated_banner: Optional[bool] = None
 
 
 class Setting(SQLModel, table=True):

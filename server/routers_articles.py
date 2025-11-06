@@ -1,8 +1,8 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Any, cast
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import func
+from sqlalchemy import func, desc
 from sqlmodel import Session, select
 
 from db import get_session
@@ -38,8 +38,9 @@ def list_articles(
             func.lower(Article.title).like(q_norm) | func.lower(Article.summary).like(q_norm)
         )
 
-    stmt = stmt.order_by(Article.published_at.desc()).offset(offset).limit(limit)
-    return session.exec(stmt).all()
+    published_col = cast(Any, Article.published_at)
+    stmt = stmt.order_by(desc(published_col)).offset(offset).limit(limit)
+    return list(session.exec(stmt).all())
 
 
 @router.get("/articles/{article_id}", response_model=Article)
@@ -121,35 +122,41 @@ class ArticleDetail(BaseModel):
     slug: str
     content_html: str
     meta_description: str
+    hashtags: Optional[str] = None
 
 
 def _build_content_html(article: Article, session: Session) -> str:
     slug = _slugify(article.title)
 
-    # Helper: linkify known entities to authoritative domains
-    def linkify_entities(text: str) -> tuple[str, list[tuple[str, str]]]:
-        entities = [
-            (re.compile(r"\bOpenAI\b", re.IGNORECASE), "OpenAI", "https://openai.com"),
-            (re.compile(r"\bMicrosoft\b", re.IGNORECASE), "Microsoft", "https://microsoft.com"),
-            (re.compile(r"\bMerge\s+Labs\b|\bMergeLabs\b", re.IGNORECASE), "Merge Labs", "https://mergelabs.io"),
-            (re.compile(r"\bTelegram\b", re.IGNORECASE), "Telegram", "https://telegram.org"),
-        ]
-
-        used: list[tuple[str, str]] = []
-        html_text = text
-        for pattern, label, url in entities:
-            def repl(m: re.Match) -> str:
-                used.append((label, url))
-                matched = m.group(0)
-                return f'<a href="{url}" target="_blank" rel="nofollow noopener">{escape(matched)}</a>'
-            html_text = pattern.sub(repl, html_text)
-        return html_text, list(dict.fromkeys(used))  # dedupe preserving order
+    # Helper: sanitize anchor tags to ensure rel/target attributes
+    def sanitize_anchors(html_text: str) -> str:
+        # Add target and rel if missing on <a ...>
+        # 1) Ensure target="_blank"
+        html_text = re.sub(r"<a(?![^>]*target=)[^>]*>", lambda m: m.group(0)[:-1] + ' target="_blank">', html_text)
+        # 2) Ensure rel contains nofollow noopener (append if rel missing)
+        def _ensure_rel(match: re.Match) -> str:
+            tag = match.group(0)
+            if 'rel=' not in tag:
+                return tag[:-1] + ' rel="nofollow noopener">'
+            # If rel exists but doesn't include both, append missing
+            rel_val_match = re.search(r"rel=\"([^\"]*)\"", tag)
+            if not rel_val_match:
+                return tag
+            rel_val = rel_val_match.group(1)
+            needed = [v for v in ["nofollow", "noopener"] if v not in rel_val.split()]
+            if needed:
+                new_rel = rel_val + " " + " ".join(needed)
+                tag = re.sub(r"rel=\"[^\"]*\"", f'rel="{new_rel}"', tag)
+            return tag
+        html_text = re.sub(r"<a[^>]*>", _ensure_rel, html_text)
+        return html_text
 
     # Build related internal links (same category)
+    published_col_related = cast(Any, Article.published_at)
     related_stmt = (
         select(Article)
         .where(Article.category == article.category, Article.id != article.id)
-        .order_by(Article.published_at.desc())
+        .order_by(desc(published_col_related))
         .limit(5)
     )
     related = session.exec(related_stmt).all()
@@ -159,20 +166,21 @@ def _build_content_html(article: Article, session: Session) -> str:
         related_items.append(f'<li><a href="/article/{a_slug}--{a.id}">{escape(a.title)}</a></li>')
     related_html = f"<ul>{''.join(related_items)}</ul>" if related_items else ""
 
-    # Lead paragraph with linkified entities from summary
-    lead_html, used_external = linkify_entities(article.summary)
+    # Construiește paragrafe din `summary` (acceptă separare prin linii goale)
+    raw_text = article.summary or ""
+    parts = [p.strip() for p in re.split(r"\n\s*\n+", raw_text) if p and p.strip()]
 
-    # Small contextual paragraph (non-AI, deterministic)
-    context = (
-        f"<p>Acest material abordează tema \u201e{escape(article.title)}\u201d și relevanța sa în zona de {escape(article.category)}."
-        f" Publicat de {escape(article.source)}.</p>"
-    )
+    paragraphs_html: list[str] = []
+    if parts:
+        for idx, p in enumerate(parts):
+            para_html = sanitize_anchors(p)
+            paragraphs_html.append(f"<p{(' class=\"lead\"' if idx == 0 else '')}>{para_html}</p>")
+    else:
+        lead_html = sanitize_anchors(raw_text)
+        paragraphs_html.append(f"<p class=\"lead\">{lead_html}</p>")
 
-    # External backlinks (if any entities were found)
+    # Fără listă de linkuri externe generată automat – ancorele vin din conținut (model)
     external_html = ""
-    if used_external:
-        links = ''.join([f'<li><a href="{url}" target="_blank" rel="nofollow noopener">{escape(name)}</a></li>' for name, url in used_external])
-        external_html = f"<p>Legături externe:</p><ul>{links}</ul>"
 
     # Category link and related posts
     cat_link = f'/\u003Fcat={escape(article.category)}'
@@ -181,7 +189,8 @@ def _build_content_html(article: Article, session: Session) -> str:
         f"{related_html}"
     )
 
-    return f"<p class=\"lead\">{lead_html}</p>{context}{external_html}{more_html}"
+    body_html = ''.join(paragraphs_html)
+    return f"{body_html}{external_html}{more_html}"
 
 
 @router.get("/articles/seo/{article_id}", response_model=ArticleDetail)
@@ -208,5 +217,6 @@ def get_article_detail(article_id: str, session: Session = Depends(get_session))
         slug=slug,
         content_html=content_html,
         meta_description=meta_description,
+        hashtags=article.hashtags,
     )
 

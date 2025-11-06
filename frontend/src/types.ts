@@ -24,6 +24,8 @@ export type Topic = {
   name: string;
   description?: string | null;
   created_at?: string | null;
+  imported_from?: string | null; // 'google_trends' pentru trenduri importate, null pentru manuale
+  expires_at?: string | null; // ISO string pentru momentul expirării
 };
 
 export type TopicStatus = {
@@ -39,6 +41,7 @@ export type Announcement = {
   title: string;
   content: string;
   topic?: string | null;
+  use_animated_banner?: boolean;
   created_at?: string | null;
 };
 

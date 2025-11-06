@@ -1,11 +1,13 @@
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from db import get_session
 from deps import require_api_key
 from models import Topic, TopicCreate, TopicUpdate, TopicStatus
+from trends import import_google_trends
 
 
 router = APIRouter()
@@ -51,4 +53,15 @@ def delete_topic(topic_id: str, session: Session = Depends(get_session)) -> None
 @router.get("/topics/statuses", response_model=List[TopicStatus])
 def list_topic_statuses(session: Session = Depends(get_session)) -> List[TopicStatus]:
     return session.exec(select(TopicStatus)).all()
+
+
+class ImportTrendsPayload(BaseModel):
+    country: str = "RO"
+
+
+@router.post("/topics/import_trends", dependencies=[Depends(require_api_key)])
+def import_trends(payload: ImportTrendsPayload) -> dict:
+    """Importă trenduri Google ca topicuri temporare (24h). Manualele rămân."""
+    stats = import_google_trends(country=payload.country)
+    return {"status": "ok", **stats}
 

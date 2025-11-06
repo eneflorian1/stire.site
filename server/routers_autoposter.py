@@ -62,8 +62,8 @@ def autoposter_start(session: Session = Depends(get_session)) -> dict:
     ap = _get_autoposter()
     if ap is None:
         raise HTTPException(status_code=503, detail="Autoposter indisponibil")
-    _safe_log(session, "info", "Autoposter pornit")
     ap.start()
+    _safe_log(session, "info", "▶️ Start manual")
     st = ap.status()
     return {
         "running": st.running,
@@ -80,7 +80,7 @@ def autoposter_stop(session: Session = Depends(get_session)) -> dict:
     if ap is None:
         raise HTTPException(status_code=503, detail="Autoposter indisponibil")
     ap.stop()
-    _safe_log(session, "info", "Autoposter oprit")
+    _safe_log(session, "info", "⏸️ Stop manual")
     st = ap.status()
     return {
         "running": st.running,
@@ -101,7 +101,7 @@ def autoposter_reset(session: Session = Depends(get_session)) -> dict:
     # Clear persisted logs
     session.exec(delete(AutoposterLog))
     session.commit()
-    _safe_log(session, "info", "Autoposter resetat")
+    _safe_log(session, "info", "🔄 Reset manual - loguri șterse, contoare resetate")
     st = ap.status()
     return {
         "running": st.running,

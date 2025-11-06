@@ -3,6 +3,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import func
+from sqlalchemy import text
 from sqlmodel import Session, SQLModel, select
 from starlette.staticfiles import StaticFiles
 
@@ -41,6 +42,30 @@ if os.path.isdir(FLUTTER_WEB_DIR):
 @app.on_event("startup")
 def on_startup() -> None:
     SQLModel.metadata.create_all(engine)
+    # Lightweight migration for new columns when using SQLite
+    try:
+        with engine.connect() as conn:
+            if engine.url.get_backend_name() == "sqlite":
+                rows = conn.execute(text("PRAGMA table_info(article)")).fetchall()
+                cols = {r[1] for r in rows}
+                if "hashtags" not in cols:
+                    conn.execute(text("ALTER TABLE article ADD COLUMN hashtags TEXT"))
+                # Migrations for Topic new columns
+                rows_t = conn.execute(text("PRAGMA table_info(topic)")).fetchall()
+                cols_t = {r[1] for r in rows_t}
+                if "imported_from" not in cols_t:
+                    conn.execute(text("ALTER TABLE topic ADD COLUMN imported_from TEXT"))
+                if "expires_at" not in cols_t:
+                    conn.execute(text("ALTER TABLE topic ADD COLUMN expires_at TIMESTAMP"))
+                # Migration for Announcement use_animated_banner column
+                rows_a = conn.execute(text("PRAGMA table_info(announcement)")).fetchall()
+                cols_a = {r[1] for r in rows_a}
+                if "use_animated_banner" not in cols_a:
+                    conn.execute(text("ALTER TABLE announcement ADD COLUMN use_animated_banner BOOLEAN DEFAULT 0"))
+                    conn.commit()
+    except Exception as e:
+        # Non-fatal: continue startup even if migration fails
+        print(f"[startup] Hashtags column migration skipped: {e}")
     with Session(engine) as session:
         # seed categories from existing article categories if category table empty
         count_categories = session.exec(select(func.count(Category.id))).one()
@@ -65,6 +90,43 @@ def on_startup() -> None:
             autoposter_manager.init()
         except Exception as e:  # noqa: BLE001
             print(f"[startup] Autoposter init failed: {e}")
+    # Start trends scheduler (daily)
+    try:
+        from threading import Thread, Event
+        from datetime import timedelta, datetime as _dt
+        from trends import import_google_trends, purge_expired_trends
+
+        stop_event = Event()
+
+        def _scheduler() -> None:
+            # Rulează imediat la startup, apoi la fiecare 24h
+            while not stop_event.is_set():
+                try:
+                    removed = purge_expired_trends()
+                    stats = import_google_trends(country="RO")
+                    # După import, încearcă să pornească autoposterul
+                    global autoposter_manager
+                    if autoposter_manager is not None:
+                        try:
+                            # pornește dacă nu rulează deja
+                            st = autoposter_manager.status()
+                            if not st.running:
+                                autoposter_manager.reset()
+                                autoposter_manager.start()
+                        except Exception as _:
+                            pass
+                except Exception as _:
+                    pass
+                # Așteaptă 24h
+                for _ in range(24 * 60):
+                    if stop_event.is_set():
+                        break
+                    stop_event.wait(timeout=60)
+
+        th = Thread(target=_scheduler, name="trends-scheduler", daemon=True)
+        th.start()
+    except Exception as e:  # noqa: BLE001
+        print(f"[startup] Trends scheduler failed: {e}")
 
 
 @app.get("/health")

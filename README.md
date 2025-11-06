@@ -1,10 +1,13 @@
 pip install -r server/requirements.txt
-uvicorn app:app --reload --port 8000
+
 cd frontend
 npm run dev
 
+cd server
+cd .venv/Scripts/
+activate
+cd ../..
+uvicorn app:app --reload --port 8000
 
-- Flutter:
-    flutter pub get
-    flutter run
+
 

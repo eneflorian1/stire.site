@@ -8,17 +8,17 @@
   --primary: #4F8BF9; /* AppDesign._lPrimary */
   --secondary: #356DF5; /* AppDesign._lSecondary */
   
-  /* Admin page specific colors - High contrast palette */
-  --admin-bg: #1a202c; /* Very dark background */
-  --admin-surface: #2d3748; /* Dark gray for cards */
-  --admin-surface-high: #4a5568; /* Medium gray for secondary elements */
-  --admin-border: #718096; /* Light gray border */
-  --admin-text: #ffffff; /* Pure white text */
-  --admin-muted: #cbd5e0; /* Light gray muted text */
-  --admin-primary: #48bb78; /* Bright green primary */
-  --admin-secondary: #38a169; /* Darker green secondary */
-  --admin-accent: #ed8936; /* Orange accent */
-  --admin-danger: #f56565; /* Red for delete buttons */
+  /* Admin (desktop) palette inspired de Purple Admin (fundal deschis, accente mov) */
+  --admin-bg: #F5F7FF;            /* Light bluish background */
+  --admin-surface: #FFFFFF;       /* White cards */
+  --admin-surface-high: #F1F4FF;  /* Subtle surface */
+  --admin-border: #E5E7F2;        /* Soft border */
+  --admin-text: #0F172A;          /* Slate-900 text */
+  --admin-muted: #64748B;         /* Slate-500 */
+  --admin-primary: #7C6BFF;       /* Purple primary */
+  --admin-secondary: #6A57FF;     /* Darker purple hover */
+  --admin-accent: #22D3EE;        /* Cyan accent for chips/badges */
+  --admin-danger: #EF4444;        /* Red for destructive */
 }
 
 * { box-sizing: border-box; }
@@ -62,92 +62,110 @@ img.cover { width: 100%; height: 180px; object-fit: cover; display: block; backg
 
 /* Admin page specific styles */
 .admin-page {
-  background: var(--admin-bg);
+  background: linear-gradient(180deg, #F8FAFF 0%, var(--admin-bg) 60%);
   color: var(--admin-text);
   min-height: 100vh;
 }
 
+.admin-page .container {
+  max-width: 1240px;
+}
+
 .admin-page .card {
   background: var(--admin-surface);
-  border: 2px solid var(--admin-border);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--admin-border);
+  box-shadow: 0 10px 28px rgba(124, 107, 255, 0.08);
+  border-radius: 16px;
+  padding: 14px;
 }
 
 .admin-page .btn {
   background: var(--admin-primary);
-  color: white;
+  color: #fff;
   font-weight: 700;
-  box-shadow: 0 3px 6px rgba(72, 187, 120, 0.3);
-  border: 2px solid var(--admin-primary);
+  box-shadow: 0 10px 24px rgba(124, 107, 255, 0.25);
+  border: 1px solid var(--admin-primary);
   transition: all 0.2s ease;
+  border-radius: 12px;
 }
 
 .admin-page .btn:hover {
   background: var(--admin-secondary);
   border-color: var(--admin-secondary);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(56, 161, 105, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 16px 30px rgba(106, 87, 255, 0.35);
 }
 
 .admin-page .btn.secondary {
-  background: var(--admin-accent);
-  color: white;
-  border: 2px solid var(--admin-accent);
+  background: var(--admin-surface-high);
+  color: var(--admin-text);
+  border: 1px solid var(--admin-border);
   font-weight: 600;
-  box-shadow: 0 3px 6px rgba(237, 137, 54, 0.3);
+  box-shadow: none;
 }
 
 .admin-page .btn.secondary:hover {
-  background: #dd6b20;
-  border-color: #dd6b20;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(221, 107, 32, 0.4);
+  background: #E9ECFF;
+  border-color: var(--admin-primary);
 }
 
 .admin-page .btn.danger {
   background: var(--admin-danger);
-  color: white;
-  border: 2px solid var(--admin-danger);
+  color: #fff;
+  border: 1px solid var(--admin-danger);
   font-weight: 700;
-  box-shadow: 0 3px 6px rgba(245, 101, 101, 0.3);
+  box-shadow: 0 10px 24px rgba(239, 68, 68, 0.22);
 }
 
 .admin-page .btn.danger:hover {
-  background: #e53e3e;
-  border-color: #e53e3e;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(229, 62, 62, 0.4);
+  background: #dc2626;
+  border-color: #dc2626;
 }
 
 .admin-page .input,
 .admin-page .select,
 .admin-page .textarea {
-  background: var(--admin-surface);
+  background: #FAFBFF;
   border-color: var(--admin-border);
   color: var(--admin-text);
+  border-radius: 12px;
+  padding: 12px 14px;
 }
 
 .admin-page .tab {
   background: var(--admin-surface);
-  border: 2px solid var(--admin-border);
-  color: var(--admin-text);
+  border: 1px solid var(--admin-border);
+  color: var(--admin-muted);
   font-weight: 600;
   transition: all 0.2s ease;
+  padding: 10px 14px;
 }
 
 .admin-page .tab:hover {
   background: var(--admin-surface-high);
   border-color: var(--admin-primary);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(72, 187, 120, 0.2);
+  color: var(--admin-text);
 }
 
 .admin-page .tab.active {
-  color: white;
+  color: #fff;
   border-color: var(--admin-primary);
   background: var(--admin-primary);
   font-weight: 700;
-  box-shadow: 0 3px 6px rgba(72, 187, 120, 0.3);
+  box-shadow: 0 10px 22px rgba(124, 107, 255, 0.3);
+}
+
+/* Tab special mutat la dreapta, cu tentă gri */
+.admin-page .tab.is-muted {
+  background: var(--admin-surface-high);
+  color: #94a3b8; /* slate-400 */
+  border-color: var(--admin-border);
+}
+.admin-page .tab.is-muted.active {
+  background: #E6E9F7;
+  color: #64748B; /* slate-500 */
+  border-color: var(--admin-border);
+  box-shadow: none;
 }
 
 .admin-page .muted {
@@ -155,11 +173,29 @@ img.cover { width: 100%; height: 180px; object-fit: cover; display: block; backg
 }
 
 .admin-page .chip {
-  background: var(--admin-accent);
-  color: white;
+  background: linear-gradient(135deg, #7C6BFF 0%, #22D3EE 100%);
+  color: #fff;
   font-weight: 600;
-  border: 2px solid var(--admin-accent);
-  box-shadow: 0 2px 4px rgba(237, 137, 54, 0.2);
+  border: 0;
+  box-shadow: 0 8px 18px rgba(124, 107, 255, 0.25);
+}
+
+/* Listele din admin să ocupe lățimea completă, nu carduri pe coloană multiplă */
+.admin-page .grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+/* Headere și titluri ușor mai mari pentru claritate */
+.admin-page .title { font-size: 18px; }
+
+/* Rânduri optimizate pentru aliniere și spațiere */
+.admin-page .row { gap: 10px; }
+
+/* Imagini de articol puțin mai mari pe desktop pentru lizibilitate */
+@media (min-width: 992px) {
+  .admin-page img[alt="article"] { width: 120px; height: 76px; }
 }
 
 
@@ -363,6 +399,78 @@ img.cover { width: 100%; height: 180px; object-fit: cover; display: block; backg
 
 .card { animation: fadeUp .28s ease both; }
 
+/* Animated banner animations */
+@keyframes slideIn {
+  0% { transform: translateX(-50px); opacity: 0.5; }
+  50% { transform: translateX(0); opacity: 1; }
+  100% { transform: translateX(50px); opacity: 0.8; }
+}
+
+@keyframes fade {
+  0% { opacity: 0; }
+  50% { opacity: 1; }
+  100% { opacity: 0.5; }
+}
+
+.animated-banner {
+  background: linear-gradient(90deg, #6466f1, #7a5cf0);
+  width: 100%;
+  height: 95px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.animated-banner-text {
+  font-family: 'Poppins', sans-serif;
+  font-size: 29px;
+  font-weight: 700;
+  color: white;
+  display: flex;
+  align-items: baseline;
+  animation: slideIn 3s ease-in-out infinite alternate;
+}
+
+.animated-banner-text span {
+  font-size: 9px;
+  margin-left: 3px;
+  position: relative;
+  top: 1px;
+  animation: fade 3s ease-in-out infinite alternate;
+}
+
+/* Desktop header (web desktop only) */
+.desktop-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  backdrop-filter: blur(8px);
+  background: rgba(245, 247, 255, 0.9);
+  border-bottom: 1px solid var(--admin-border);
+}
+.desktop-header__inner {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 10px 16px;
+  display: grid;
+  grid-template-columns: 200px 1fr auto;
+  align-items: center;
+  gap: 12px;
+}
+.desktop-header__brand {
+  font-weight: 800;
+  font-size: 20px;
+  text-decoration: none;
+  color: var(--admin-text);
+}
+.desktop-header__search { position: relative; justify-self: center; width: 100%; max-width: 420px; }
+.desktop-header__actions { display: flex; gap: 10px; }
+.desktop-link { text-decoration: none; color: var(--admin-muted); padding: 8px 10px; border-radius: 10px; }
+.desktop-link:hover { color: var(--admin-text); background: var(--admin-surface-high); }
+
 /* Responsive tweaks for mobile */
 @media (max-width: 640px) {
   .grid { grid-template-columns: 1fr; }
@@ -385,6 +493,7 @@ img.cover { width: 100%; height: 180px; object-fit: cover; display: block; backg
 .article-content .lead {
   font-size: 21px;
   line-height: 1.9;
+  font-style: italic;
 }
 
 .article-content p { margin: 0 0 14px 0; }

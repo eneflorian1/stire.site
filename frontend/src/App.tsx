@@ -1,6 +1,7 @@
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
 import Home from './pages/Home';
+import HomeDesktop from './pages/HomeDesktop';
 import ArticlePage from './pages/Article';
 import CreateArticle from './pages/CreateArticle';
 import Admin from './pages/Admin';
@@ -10,6 +11,8 @@ import Profile from './pages/Profile';
 import TopBar from './components/TopBar';
 import HamburgerMenu from './components/HamburgerMenu';
 import BottomNav from './components/BottomNav';
+import Footer from './components/Footer';
+import DesktopHeader from './components/DesktopHeader';
 
 export default function App() {
   const loc = useLocation();
@@ -43,16 +46,22 @@ export default function App() {
 
   return (
     <div>
-      <TopBar
-        q={q}
-        onChangeQ={setQ}
-        onSubmitSearch={doSearch}
-        onOpenMenu={() => setMenuOpen(true)}
-      />
-      <HamburgerMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
+      {w >= 992 ? (
+        <DesktopHeader />
+      ) : (
+        <>
+          <TopBar
+            q={q}
+            onChangeQ={setQ}
+            onSubmitSearch={doSearch}
+            onOpenMenu={() => setMenuOpen(true)}
+          />
+          <HamburgerMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
+        </>
+      )}
       <main style={{ paddingTop: 56, paddingBottom: 72 }}>
         <Routes location={loc}>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={w >= 992 ? <HomeDesktop /> : <Home />} />
           <Route path="/article/:id" element={<ArticlePage />} />
           <Route path="/create" element={<CreateArticle />} />
           <Route path="/admin" element={<Admin />} />
@@ -61,7 +70,7 @@ export default function App() {
           <Route path="/profil" element={<Profile />} />
         </Routes>
       </main>
-      <BottomNav />
+      {w >= 992 ? <Footer /> : <BottomNav />}
     </div>
   );
 }

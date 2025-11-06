@@ -18,7 +18,12 @@ def list_announcements(session: Session = Depends(get_session)) -> List[Announce
 
 @router.post("/announcements", response_model=Announcement, dependencies=[Depends(require_api_key)])
 def create_announcement(payload: AnnouncementCreate, session: Session = Depends(get_session)) -> Announcement:
-    ann = Announcement(title=payload.title, content=payload.content, topic=payload.topic)
+    ann = Announcement(
+        title=payload.title,
+        content=payload.content,
+        topic=payload.topic,
+        use_animated_banner=payload.use_animated_banner
+    )
     session.add(ann)
     session.commit()
     session.refresh(ann)
