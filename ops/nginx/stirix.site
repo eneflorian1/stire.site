@@ -1,14 +1,15 @@
+# HTTP server
+# NOTE: If you have HTTPS configured (via certbot), you may have a separate server block
+# that redirects HTTP to HTTPS. In that case, make sure sitemap.xml is accessible
+# on both HTTP and HTTPS, or exclude it from the redirect.
 server {
     listen 80;
     server_name stire.site www.stire.site;
 
     client_max_body_size 20m;
 
-    # Serve React build from Vite
-    root /opt/app/frontend/dist;
-    index index.html;
-
-    # Sitemap for Google Search Console (MUST be before location / to avoid SPA fallback)
+    # Sitemap for Google Search Console (MUST be first, before any redirects)
+    # This ensures sitemap.xml is accessible even if HTTP redirects to HTTPS
     location = /sitemap.xml {
         proxy_pass http://127.0.0.1:8000/sitemap.xml;
         proxy_http_version 1.1;
@@ -19,6 +20,10 @@ server {
         proxy_set_header   X-Forwarded-Host $host;
         add_header Content-Type application/xml;
     }
+
+    # Serve React build from Vite
+    root /opt/app/frontend/dist;
+    index index.html;
 
     # Health check (direct to backend)
     location = /health {
