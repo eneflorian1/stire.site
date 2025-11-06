@@ -1,7 +1,33 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_DIR="/opt/app"
+# Detect project directory - accept parameter or auto-detect
+if [ -n "${1:-}" ]; then
+    # Use provided directory
+    APP_DIR="$1"
+elif [ -f "setup.sh" ] || [ -f "ops/deploy.sh" ]; then
+    # We're in the project root or ops directory
+    if [ -f "setup.sh" ]; then
+        APP_DIR="$(pwd)"
+    else
+        # We're in ops/ directory, go up one level
+        APP_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+    fi
+else
+    # Try to find project root by looking for setup.sh or ecosystem.config.js
+    SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+    if [ -f "$SCRIPT_DIR/../setup.sh" ]; then
+        APP_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+    elif [ -f "$SCRIPT_DIR/../ecosystem.config.js" ]; then
+        APP_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+    else
+        # Fallback to /opt/app if nothing found
+        APP_DIR="/opt/app"
+        echo "⚠ Warning: Could not auto-detect project directory, using default: $APP_DIR"
+    fi
+fi
+
+echo "Using project directory: $APP_DIR"
 cd "$APP_DIR"
 
 git fetch --all --prune

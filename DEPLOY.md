@@ -101,9 +101,12 @@ sudo certbot --nginx -d stirix.site -d www.stirix.site
 
 Add these secrets:
 
-- `SSH_HOST` = `64.225.49.128`
-- `SSH_USER` = `root`
-- `SSH_PRIVATE_KEY` = contents of your private deploy key (generated at step 0)
+- `SSH_HOST` = `64.225.49.128` (IP-ul serverului VPS)
+- `SSH_USER` = `root` (utilizatorul SSH)
+- `SSH_PRIVATE_KEY` = conținutul cheii private de deploy (generată la pasul 0)
+- `PROJECT_DIR` = (opțional) calea către folderul proiectului pe server (ex: `/opt/app` sau `/home/user/stirix`)
+
+**Notă:** Dacă `PROJECT_DIR` nu este setat, workflow-ul va detecta automat folderul proiectului căutând `setup.sh` sau `ecosystem.config.js` în locații comune (`/opt/app`, `/home/user/stirix`, etc.).
 
 To view the private key (Windows):
 
@@ -113,11 +116,19 @@ type %USERPROFILE%\.ssh\github_deploy_key
 
 ## 7) Deploy workflow
 
-The repository already contains `.github/workflows/deploy.yml`. On push to `main`, it SSH-es into `64.225.49.128` and executes:
+Repository-ul conține deja `.github/workflows/deploy.yml`. La push pe branch-ul `main`, workflow-ul:
+
+1. Se conectează la serverul VPS via SSH
+2. Detectează automat folderul proiectului (folosind același mecanism ca `setup.sh`) sau folosește `PROJECT_DIR` secret dacă este setat
+3. Rulează `ops/deploy.sh` în folderul detectat
+
+Workflow-ul rulează automat la fiecare push pe `main` și execută:
 
 ```bash
-bash /opt/app/deploy.sh
+bash <PROJECT_DIR>/ops/deploy.sh <PROJECT_DIR>
 ```
+
+Unde `<PROJECT_DIR>` este folderul detectat automat sau cel setat în secret-ul `PROJECT_DIR`.
 
 ## 8) Manual checks
 
