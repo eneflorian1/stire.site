@@ -242,9 +242,21 @@ server {
     root $PROJECT_DIR/frontend/dist;
     index index.html;
 
-    # SPA fallback
-    location / {
-        try_files \$uri /index.html;
+    # Sitemap for Google Search Console (MUST be before location / to avoid SPA fallback)
+    location = /sitemap.xml {
+        proxy_pass http://127.0.0.1:8000/sitemap.xml;
+        proxy_http_version 1.1;
+        proxy_set_header   Host \$host;
+        proxy_set_header   X-Real-IP \$remote_addr;
+        proxy_set_header   X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto \$scheme;
+        proxy_set_header   X-Forwarded-Host \$host;
+        add_header Content-Type application/xml;
+    }
+
+    # Health check (direct to backend)
+    location = /health {
+        proxy_pass http://127.0.0.1:8000/health;
     }
 
     # Backend API (frontend expects /api prefix)
@@ -258,19 +270,9 @@ server {
         proxy_read_timeout 120s;
     }
 
-    # Health check (direct to backend)
-    location /health {
-        proxy_pass http://127.0.0.1:8000/health;
-    }
-
-    # Sitemap for Google Search Console
-    location /sitemap.xml {
-        proxy_pass http://127.0.0.1:8000/sitemap.xml;
-        proxy_http_version 1.1;
-        proxy_set_header   Host \$host;
-        proxy_set_header   X-Real-IP \$remote_addr;
-        proxy_set_header   X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header   X-Forwarded-Proto \$scheme;
+    # SPA fallback (must be last to catch all other routes)
+    location / {
+        try_files \$uri /index.html;
     }
 }
 NGINX_EOF
