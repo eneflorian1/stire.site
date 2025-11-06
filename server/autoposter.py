@@ -335,7 +335,7 @@ class Autoposter:
                         except Exception as fetch_err:  # noqa: BLE001
                             safe_log(session, "warning", f"⚠️ '{t.name}': căutare surse eșuată")
                         
-                        # Extragere imagine principală - caută doar pe Google Images
+                        # Extragere imagine principală - caută pe Google Images, apoi fallback la surse
                         main_image_url: Optional[str] = None
                         
                         try:
@@ -361,7 +361,16 @@ class Autoposter:
                         except Exception as img_err:  # noqa: BLE001
                             safe_log(session, "warning", f"⚠️ '{t.name}': căutare Google Images eșuată - {str(img_err)[:60]}")
                         
-                        # Fallback la placeholder gri dacă nu s-a găsit nimic
+                        # Fallback 1: Încearcă să extragă imagini din sursele de știri
+                        if not main_image_url and sources:
+                            try:
+                                main_image_url = self._extract_main_image_from_sources(sources)
+                                if main_image_url:
+                                    safe_log(session, "info", f"🖼️ '{t.name}': imagine găsită în sursele de știri")
+                            except Exception as src_err:  # noqa: BLE001
+                                safe_log(session, "warning", f"⚠️ '{t.name}': extragere imagine din surse eșuată - {str(src_err)[:60]}")
+                        
+                        # Fallback 2: Placeholder gri dacă nu s-a găsit nimic
                         if not main_image_url:
                             safe_log(session, "info", f"⚠️ '{t.name}': nu s-a găsit imagine, folosind placeholder")
                             # SVG gri deschis (placeholder) - va fi detectat în frontend
@@ -903,109 +912,166 @@ class Autoposter:
         if not query or not query.strip():
             return []
         
-        try:
-            # Construiește URL-ul de căutare Google Images
-            q = urlparse.quote_plus(query)
-            search_url = f"https://www.google.com/search?q={q}&tbm=isch&hl=ro&gl=RO"
-            
-            req = request.Request(
-                search_url,
-                headers={
-                    "User-Agent": (
-                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                        "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-                    ),
-                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-                    "Accept-Language": "ro-RO,ro;q=0.9,en;q=0.8",
-                },
-                method="GET",
-            )
-            
-            with request.urlopen(req, timeout=10) as resp:
-                charset = resp.headers.get_content_charset() or "utf-8"
-                try:
-                    html = resp.read().decode(charset, errors="replace")
-                except Exception:
-                    html = resp.read().decode("utf-8", errors="replace")
-            
-            # Google Images folosește multiple metode pentru a stoca URL-urile
-            found_urls: set[str] = set()
-            
-            # Metoda 1: Caută pattern-uri de URL-uri directe în HTML (imagini embedded)
-            # Pattern: "https://example.com/image.jpg" sau https://example.com/image.jpg
-            direct_url_pattern = r'https://[^\s"\'<>]+\.(?:jpg|jpeg|png|webp|gif)(?:\?[^\s"\'<>]*)?'
-            matches = re.finditer(direct_url_pattern, html, re.IGNORECASE)
-            for match in matches:
-                url_str = match.group(0).strip()
-                # Curăță ghilimele și escape-uri
-                url_str = url_str.strip('"\'')
-                if url_str.startswith("https://") and self._is_valid_banner_image(url_str):
-                    found_urls.add(url_str)
-            
-            # Metoda 2: Caută în JSON embedded (AF_initDataCallback - formatul nou Google Images)
-            # Google Images stochează datele în structuri JSON complexe
-            # Caută pattern-uri comune: "ou":"https://..." sau "url":"https://..."
-            json_patterns = [
-                r'"ou"\s*:\s*"([^"]+)"',  # "ou" = original URL
-                r'"url"\s*:\s*"([^"]+)"',  # "url" generic
-                r'"src"\s*:\s*"([^"]+)"',  # "src"
-            ]
-            
-            for pattern in json_patterns:
-                matches = re.finditer(pattern, html, re.IGNORECASE)
+        # Retry logic pentru a gestiona rate limiting și erori temporare
+        max_retries = 3
+        retry_delay = 2.0
+        
+        for attempt in range(1, max_retries + 1):
+            try:
+                # Construiește URL-ul de căutare Google Images
+                q = urlparse.quote_plus(query)
+                search_url = f"https://www.google.com/search?q={q}&tbm=isch&hl=ro&gl=RO"
+                
+                # Headers mai complete pentru a evita detecția ca bot
+                req = request.Request(
+                    search_url,
+                    headers={
+                        "User-Agent": (
+                            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                            "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+                        ),
+                        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+                        "Accept-Language": "ro-RO,ro;q=0.9,en-US;q=0.8,en;q=0.7",
+                        "Accept-Encoding": "gzip, deflate, br",
+                        "Referer": "https://www.google.com/",
+                        "Sec-Fetch-Dest": "document",
+                        "Sec-Fetch-Mode": "navigate",
+                        "Sec-Fetch-Site": "same-origin",
+                        "Sec-Fetch-User": "?1",
+                        "Upgrade-Insecure-Requests": "1",
+                        "Connection": "keep-alive",
+                        "Cache-Control": "max-age=0",
+                    },
+                    method="GET",
+                )
+                
+                with request.urlopen(req, timeout=15) as resp:
+                    charset = resp.headers.get_content_charset() or "utf-8"
+                    try:
+                        html = resp.read().decode(charset, errors="replace")
+                    except Exception:
+                        html = resp.read().decode("utf-8", errors="replace")
+                
+                # Verifică dacă Google a returnat o pagină de captcha sau eroare
+                if "captcha" in html.lower() or "unusual traffic" in html.lower() or "our systems have detected" in html.lower():
+                    if attempt < max_retries:
+                        self._wait_with_stop(retry_delay * attempt)
+                        continue
+                    # Dacă e ultimul attempt, returnează gol
+                    return []
+                
+                # Verifică dacă HTML-ul este prea scurt (probabil eroare)
+                if len(html) < 1000:
+                    if attempt < max_retries:
+                        self._wait_with_stop(retry_delay * attempt)
+                        continue
+                    return []
+                
+                # Google Images folosește multiple metode pentru a stoca URL-urile
+                found_urls: set[str] = set()
+                
+                # Metoda 1: Caută pattern-uri de URL-uri directe în HTML (imagini embedded)
+                # Pattern: "https://example.com/image.jpg" sau https://example.com/image.jpg
+                direct_url_pattern = r'https://[^\s"\'<>]+\.(?:jpg|jpeg|png|webp|gif)(?:\?[^\s"\'<>]*)?'
+                matches = re.finditer(direct_url_pattern, html, re.IGNORECASE)
                 for match in matches:
-                    url_str = match.group(1).strip()
-                    # Curăță escape-uri JSON
-                    url_str = url_str.replace('\\/', '/').replace('\\u003d', '=').replace('\\u0026', '&')
+                    url_str = match.group(0).strip()
+                    # Curăță ghilimele și escape-uri
+                    url_str = url_str.strip('"\'')
                     if url_str.startswith("https://") and self._is_valid_banner_image(url_str):
                         found_urls.add(url_str)
-            
-            # Metoda 3: Caută în atribut data-src sau data-original (imagini lazy-loaded)
-            lazy_patterns = [
-                r'data-src=["\']([^"\']+)["\']',
-                r'data-original=["\']([^"\']+)["\']',
-                r'srcset=["\']([^"\']+)["\']',
-            ]
-            
-            for pattern in lazy_patterns:
-                matches = re.finditer(pattern, html, re.IGNORECASE)
-                for match in matches:
-                    url_str = match.group(1).strip()
-                    # Pentru srcset, poate conține multiple URL-uri: url1 1x, url2 2x
-                    if ' ' in url_str:
-                        # Ia primul URL din srcset
-                        url_str = url_str.split()[0]
-                    if url_str.startswith("https://") and self._is_valid_banner_image(url_str):
-                        found_urls.add(url_str)
-            
-            # Metoda 4: Caută în script tags cu JSON (structuri Google Images)
-            # Pattern: var _setImagesSrc sau similar
-            script_pattern = r'<script[^>]*>(.*?)</script>'
-            script_matches = re.finditer(script_pattern, html, re.IGNORECASE | re.DOTALL)
-            for script_match in script_matches:
-                script_content = script_match.group(1)
-                # Caută URL-uri în conținutul script-ului
-                url_matches = re.finditer(r'https://[^\s"\'<>]+\.(?:jpg|jpeg|png|webp|gif)', script_content, re.IGNORECASE)
-                for url_match in url_matches:
-                    url_str = url_match.group(0).strip()
-                    if self._is_valid_banner_image(url_str):
-                        found_urls.add(url_str)
-            
-            # Validează și sortează URL-urile
-            valid_urls: list[str] = []
-            for url in found_urls:
-                if self._validate_image_url(url):
-                    valid_urls.append(url)
-            
-            # Sortează pentru a prefera URL-uri mai clare (fără parametri complexe)
-            sorted_urls = sorted(valid_urls, key=lambda x: (len(x.split('?')), x))
-            
-            # Returnează primele max_results
-            return sorted_urls[:max_results]
-            
-        except Exception:  # noqa: BLE001
-            # Dacă căutarea eșuează, returnează listă goală
-            pass
+                
+                # Metoda 2: Caută în JSON embedded (AF_initDataCallback - formatul nou Google Images)
+                # Google Images stochează datele în structuri JSON complexe
+                # Caută pattern-uri comune: "ou":"https://..." sau "url":"https://..."
+                json_patterns = [
+                    r'"ou"\s*:\s*"([^"]+)"',  # "ou" = original URL
+                    r'"url"\s*:\s*"([^"]+)"',  # "url" generic
+                    r'"src"\s*:\s*"([^"]+)"',  # "src"
+                ]
+                
+                for pattern in json_patterns:
+                    matches = re.finditer(pattern, html, re.IGNORECASE)
+                    for match in matches:
+                        url_str = match.group(1).strip()
+                        # Curăță escape-uri JSON
+                        url_str = url_str.replace('\\/', '/').replace('\\u003d', '=').replace('\\u0026', '&')
+                        url_str = url_str.replace('\\"', '"').replace("\\'", "'")
+                        # Verifică că e URL valid
+                        if url_str.startswith("https://") and self._is_valid_banner_image(url_str):
+                            found_urls.add(url_str)
+                
+                # Metoda 3: Caută în atribut data-src sau data-original (imagini lazy-loaded)
+                lazy_patterns = [
+                    r'data-src=["\']([^"\']+)["\']',
+                    r'data-original=["\']([^"\']+)["\']',
+                    r'srcset=["\']([^"\']+)["\']',
+                    r'data-imgsrc=["\']([^"\']+)["\']',
+                ]
+                
+                for pattern in lazy_patterns:
+                    matches = re.finditer(pattern, html, re.IGNORECASE)
+                    for match in matches:
+                        url_str = match.group(1).strip()
+                        # Pentru srcset, poate conține multiple URL-uri: url1 1x, url2 2x
+                        if ' ' in url_str:
+                            # Ia primul URL din srcset
+                            url_str = url_str.split()[0]
+                        if url_str.startswith("https://") and self._is_valid_banner_image(url_str):
+                            found_urls.add(url_str)
+                
+                # Metoda 4: Caută în script tags cu JSON (structuri Google Images)
+                # Pattern: var _setImagesSrc sau similar
+                script_pattern = r'<script[^>]*>(.*?)</script>'
+                script_matches = re.finditer(script_pattern, html, re.IGNORECASE | re.DOTALL)
+                for script_match in script_matches:
+                    script_content = script_match.group(1)
+                    # Caută URL-uri în conținutul script-ului
+                    url_matches = re.finditer(r'https://[^\s"\'<>]+\.(?:jpg|jpeg|png|webp|gif)', script_content, re.IGNORECASE)
+                    for url_match in url_matches:
+                        url_str = url_match.group(0).strip()
+                        if self._is_valid_banner_image(url_str):
+                            found_urls.add(url_str)
+                
+                # Metoda 5: Caută în structuri JSON mai complexe (AF_initDataCallback)
+                # Google folosește structuri JSON în script tags
+                af_init_pattern = r'AF_initDataCallback\([^)]*\)'
+                af_matches = re.finditer(af_init_pattern, html, re.IGNORECASE)
+                for af_match in af_matches:
+                    json_content = af_match.group(0)
+                    # Caută URL-uri în acest JSON
+                    url_matches = re.finditer(r'https://[^\s"\'<>]+\.(?:jpg|jpeg|png|webp|gif)', json_content, re.IGNORECASE)
+                    for url_match in url_matches:
+                        url_str = url_match.group(0).strip()
+                        if self._is_valid_banner_image(url_str):
+                            found_urls.add(url_str)
+                
+                # Validează și sortează URL-urile
+                valid_urls: list[str] = []
+                for url in found_urls:
+                    if self._validate_image_url(url):
+                        valid_urls.append(url)
+                
+                # Sortează pentru a prefera URL-uri mai clare (fără parametri complexe)
+                sorted_urls = sorted(valid_urls, key=lambda x: (len(x.split('?')), x))
+                
+                # Returnează primele max_results
+                return sorted_urls[:max_results]
+                
+            except urlerror.HTTPError as e:
+                # Pentru erori HTTP, încercăm din nou dacă nu e ultimul attempt
+                if attempt < max_retries and e.code in (429, 503, 502, 500):
+                    self._wait_with_stop(retry_delay * attempt)
+                    continue
+                # Altfel, returnează gol
+                return []
+            except Exception as e:  # noqa: BLE001
+                # Pentru alte erori, încercăm din nou dacă nu e ultimul attempt
+                if attempt < max_retries:
+                    self._wait_with_stop(retry_delay * attempt)
+                    continue
+                # Dacă e ultimul attempt, returnează gol
+                return []
         
         return []
 
