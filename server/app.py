@@ -20,6 +20,7 @@ from routers_articles import router as articles_router
 from routers_autoposter import router as autoposter_router
 from routers_categories import router as categories_router
 from routers_settings import router as settings_router
+from routers_sitemap import router as sitemap_router
 from routers_topics import router as topics_router
 
 
@@ -162,5 +163,6 @@ app.include_router(topics_router)
 app.include_router(announcements_router)
 app.include_router(settings_router)
 app.include_router(autoposter_router)
+app.include_router(sitemap_router)
 
 
