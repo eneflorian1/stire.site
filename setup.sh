@@ -24,20 +24,20 @@ fi
 # 1. Python virtual environment setup
 echo ""
 echo "[1/8] Setting up Python virtual environment..."
-if [ ! -d ".venv" ]; then
-    python3 -m venv .venv
-    echo "✓ Virtual environment created at $PROJECT_DIR/.venv"
+if [ ! -d "server/.venv" ]; then
+    python3 -m venv server/.venv
+    echo "✓ Virtual environment created at $PROJECT_DIR/server/.venv"
 else
-    echo "✓ Virtual environment already exists at $PROJECT_DIR/.venv"
+    echo "✓ Virtual environment already exists at $PROJECT_DIR/server/.venv"
 fi
 
 # Get absolute path to Python and pip in venv
-VENV_PYTHON="$PROJECT_DIR/.venv/bin/python"
-VENV_PIP="$PROJECT_DIR/.venv/bin/pip"
+VENV_PYTHON="$PROJECT_DIR/server/.venv/bin/python"
+VENV_PIP="$PROJECT_DIR/server/.venv/bin/pip"
 if [ ! -f "$VENV_PYTHON" ]; then
     # Try Windows path
-    VENV_PYTHON="$PROJECT_DIR/.venv/Scripts/python.exe"
-    VENV_PIP="$PROJECT_DIR/.venv/Scripts/pip.exe"
+    VENV_PYTHON="$PROJECT_DIR/server/.venv/Scripts/python.exe"
+    VENV_PIP="$PROJECT_DIR/server/.venv/Scripts/pip.exe"
 fi
 
 # Verify venv Python exists
@@ -293,7 +293,7 @@ echo "=========================================="
 echo "Domain: $DOMAIN"
 echo "Backend: Running on PM2 (stirix-api)"
 echo "Frontend: Built and served via Nginx"
-echo "Virtual Environment: $PROJECT_DIR/.venv"
+echo "Virtual Environment: $PROJECT_DIR/server/.venv"
 echo ""
 echo "PM2 Commands:"
 echo "  pm2 status          - Check status"

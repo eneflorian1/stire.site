@@ -62,9 +62,9 @@ Script behavior: `git fetch/reset/pull`, then optionally Docker Compose, then re
 ## 3) Python venv + dependencies
 
 ```bash
-python3 -m venv /opt/app/.venv
-/opt/app/.venv/bin/pip install --upgrade pip
-/opt/app/.venv/bin/pip install -r /opt/app/server/requirements.txt
+python3 -m venv /opt/app/server/.venv
+/opt/app/server/.venv/bin/pip install --upgrade pip
+/opt/app/server/.venv/bin/pip install -r /opt/app/server/requirements.txt
 ```
 
 ## 4) Systemd service (FastAPI via Uvicorn)
@@ -73,7 +73,7 @@ python3 -m venv /opt/app/.venv
 sudo cp ops/systemd/stirix.service /etc/systemd/system/stirix.service
 
 # Use venv python for ExecStart
-sudo sed -i 's|^ExecStart=.*|ExecStart=/opt/app/.venv/bin/python3 -m uvicorn app:app --host 127.0.0.1 --port 8000 --workers 2|' /etc/systemd/system/stirix.service
+sudo sed -i 's|^ExecStart=.*|ExecStart=/opt/app/server/.venv/bin/python3 -m uvicorn app:app --host 127.0.0.1 --port 8000 --workers 2|' /etc/systemd/system/stirix.service
 
 sudo systemctl daemon-reload
 sudo systemctl enable stirix
