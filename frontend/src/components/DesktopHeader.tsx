@@ -1,5 +1,5 @@
 import { KeyboardEvent } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link, NavLink } from 'react-router-dom';
 
 export default function DesktopHeader() {
   const nav = useNavigate();
@@ -22,7 +22,7 @@ export default function DesktopHeader() {
   return (
     <header className="desktop-header" role="banner">
       <div className="desktop-header__inner">
-        <a className="desktop-header__brand" href="/">Stirix Admin</a>
+        <Link className="desktop-header__brand" to="/">Stirix Admin</Link>
         <div className="desktop-header__search" role="search">
           <input
             className="search-input"
@@ -39,10 +39,10 @@ export default function DesktopHeader() {
           </button>
         </div>
         <nav className="desktop-header__actions" aria-label="Acțiuni rapide">
-          <a className="desktop-link" href="/">Home</a>
-          <a className="desktop-link" href="/categorii">Categorii</a>
-          <a className="desktop-link" href="/admin">Admin</a>
-          <a className="desktop-link" href="/profil">Profil</a>
+          <NavLink to="/" end className={({ isActive }) => `desktop-link${isActive ? ' active' : ''}`}>Home</NavLink>
+          <NavLink to="/categorii" className={({ isActive }) => `desktop-link${isActive ? ' active' : ''}`}>Categorii</NavLink>
+          <NavLink to="/admin" className={({ isActive }) => `desktop-link${isActive ? ' active' : ''}`}>Admin</NavLink>
+          <NavLink to="/profil" className={({ isActive }) => `desktop-link${isActive ? ' active' : ''}`}>Profil</NavLink>
         </nav>
       </div>
     </header>

@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 export default function Footer() {
   return (
     <footer style={{
@@ -9,10 +11,10 @@ export default function Footer() {
       <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
         <div style={{ color: '#6b7280' }}>© {new Date().getFullYear()} Stirix</div>
         <nav style={{ display: 'flex', gap: 16 }}>
-          <a href="/" style={{ color: '#374151', textDecoration: 'none' }}>Acasă</a>
-          <a href="/categorii" style={{ color: '#374151', textDecoration: 'none' }}>Categorii</a>
-          <a href="/salvate" style={{ color: '#374151', textDecoration: 'none' }}>Salvate</a>
-          <a href="/profil" style={{ color: '#374151', textDecoration: 'none' }}>Profil</a>
+          <Link to="/" style={{ color: '#374151', textDecoration: 'none' }}>Acasă</Link>
+          <Link to="/categorii" style={{ color: '#374151', textDecoration: 'none' }}>Categorii</Link>
+          <Link to="/salvate" style={{ color: '#374151', textDecoration: 'none' }}>Salvate</Link>
+          <Link to="/profil" style={{ color: '#374151', textDecoration: 'none' }}>Profil</Link>
         </nav>
       </div>
     </footer>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, Fragment } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   createCategory,
   deleteArticle,
@@ -100,6 +101,7 @@ export default function Admin() {
 }
 
 function ArticlesAdmin() {
+  const nav = useNavigate();
   const [categories, setCategories] = useState<string[]>(['Toate']);
   const [current, setCurrent] = useState<string>('Toate');
   const [q, setQ] = useState<string>('');
@@ -159,7 +161,7 @@ function ArticlesAdmin() {
                 
               </div>
               <div className="row" style={{ gap: 8 }}>
-                <button className="btn secondary" onClick={() => window.open(`/create`, '_self')}>Editează</button>
+                <button className="btn secondary" onClick={() => nav('/create')}>Editează</button>
                 <button className="btn danger" onClick={() => void onDelete(a.id)}>Șterge</button>
               </div>
             </div>
