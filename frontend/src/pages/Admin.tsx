@@ -780,7 +780,7 @@ function GeminiAdmin() {
   
   // FIX: Folosim useRef pentru a urmări statusul curent fără re-render
   const runningRef = useRef<boolean>(false);
-  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const pollingRef = useRef<number | null>(null);
 
   // FIX: Funcție de polling lightweight pentru status în timp real
   const pollStatus = useCallback(async () => {
