@@ -52,22 +52,27 @@ class Autoposter:
         self._current_topic: Optional[str] = None
         self._thread: Optional[Thread] = None
         self._stop_event = Event()
+        # FIX: Flag explicit pentru manual stop care persistă în memorie
+        self._manual_stopped = False
         # Delay (seconds) between topic processing steps to respect provider rate limits
         try:
             self._delay_seconds = max(1, int(os.environ.get("AUTOPOSTER_DELAY_SECONDS", "12")))
         except Exception:
             self._delay_seconds = 12
 
-    def _wait_with_stop(self, total_seconds: float) -> None:
-        """Așteaptă până la `total_seconds`, verificând periodic semnalul de oprire.
-
-        Permite oprirea rapidă în timpul pauzelor dintre pași.
+    def _wait_with_stop(self, total_seconds: float) -> bool:
+        """
+        FIX: Returnează True dacă s-a oprit, False dacă a expirat timeout-ul.
+        Verifică mai frecvent pentru oprire rapidă.
         """
         remaining = float(total_seconds)
-        step = 0.5
+        step = 0.2  # FIX: Mai des verifică (era 0.5s, acum 0.2s)
         while remaining > 0 and not self._stop_event.is_set():
-            self._stop_event.wait(timeout=min(step, remaining))
-            remaining -= step
+            wait_time = min(step, remaining)
+            if self._stop_event.wait(timeout=wait_time):
+                return True  # S-a oprit
+            remaining -= wait_time
+        return self._stop_event.is_set()
 
     def init(self) -> None:
         """Punct de extensie pentru inițializări viitoare. În prezent nu face nimic."""
@@ -78,6 +83,23 @@ class Autoposter:
         with Session(engine) as session:
             row = session.get(Setting, "gemini_api_key")
             return row.value if row else None
+
+    def _is_manual_stopped(self) -> bool:
+        """
+        FIX: Verifică atât flag-ul în memorie cât și cel din DB.
+        Previne auto-restart accidental.
+        """
+        # Verifică flag-ul în memorie mai întâi (mai rapid)
+        if self._manual_stopped:
+            return True
+        
+        # Verifică și în DB pentru sincronizare cross-instance
+        try:
+            with Session(engine) as session:
+                setting = session.get(Setting, "autoposter_manual_stop")
+                return setting is not None and setting.value == "true"
+        except Exception:
+            return False
 
     def _choose_category(self, predicted: Optional[str], session: Session) -> Optional[str]:
         """Mapează o categorie prezisă la una existentă în DB.
@@ -187,18 +209,26 @@ class Autoposter:
         )
 
     def start(self) -> None:
-        """Pornește thread‑ul Autoposter dacă nu rulează deja.
-
-        Verifică existența cheii Gemini (setează `last_error` dacă lipsește),
-        resetează starea relevantă și lansează `_run()` într-un thread daemon.
+        """
+        FIX: Pornește thread‑ul Autoposter cu verificări îmbunătățite.
         """
         with self._lock:
             if self._running:
                 return
+            
+            # FIX: Verifică dacă a fost oprit manual înainte de a porni
+            if self._is_manual_stopped():
+                self._last_error = "Autoposter oprit manual - apasă Start pentru a reporni"
+                return
+            
             key = self._get_gemini_key()
             if not key:
                 self._last_error = "Missing Gemini API key"
                 return
+            
+            # FIX: Resetează flag-ul de oprire manuală
+            self._manual_stopped = False
+            
             self._running = True
             self._started_at = datetime.utcnow()
             self._last_error = None
@@ -207,18 +237,30 @@ class Autoposter:
             self._thread.start()
 
     def stop(self) -> None:
-        """Semnalează oprirea și așteaptă închiderea grațioasă a thread‑ului."""
+        """
+        FIX: Oprire forțată cu timeout mai scurt și flag explicit.
+        """
         with self._lock:
             if not self._running:
                 return
+            
+            # FIX: Setează flag-ul manual stopped
+            self._manual_stopped = True
+            
+            # Semnalizează oprirea
             self._stop_event.set()
             t = self._thread
             self._thread = None
             self._running = False
             self._current_topic = None
+        
         if t is not None:
-            # Mărim timeout-ul la 10 secunde pentru a permite oprirea completă
-            t.join(timeout=10)
+            # FIX: Timeout mai scurt - 3 secunde în loc de 10
+            t.join(timeout=3.0)
+            if t.is_alive():
+                # Thread-ul încă rulează, dar continuăm
+                # (daemon thread va fi terminat automat la exit)
+                pass
 
     def reset(self) -> None:
         """Resetează contoarele volatile: `items_created` și `last_error`."""
@@ -253,6 +295,12 @@ class Autoposter:
                 safe_log(session, "info", "🚀 Autoposter pornit")
             
             while not self._stop_event.is_set():
+                # FIX: Verifică la fiecare iterație dacă a fost oprit manual
+                if self._is_manual_stopped():
+                    with Session(engine) as session:
+                        safe_log(session, "info", "⏹️ Autoposter oprit manual")
+                    break
+                
                 topics: list[Topic] = []
                 with Session(engine) as session:
                     now = datetime.utcnow()
@@ -279,7 +327,9 @@ class Autoposter:
                 if not topics:
                     with self._lock:
                         self._current_topic = "Idle"
-                    self._stop_event.wait(timeout=10.0)
+                    # FIX: Returnează True dacă s-a oprit în timpul wait-ului
+                    if self._wait_with_stop(10.0):
+                        break
                     continue
 
                 # Contoare pentru ciclul curent
@@ -289,7 +339,8 @@ class Autoposter:
                 failed = 0
 
                 for t in topics:
-                    if self._stop_event.is_set():
+                    # FIX: Verifică la fiecare topic dacă trebuie să se oprească
+                    if self._stop_event.is_set() or self._is_manual_stopped():
                         break
                     
                     processed += 1
@@ -314,9 +365,16 @@ class Autoposter:
                             safe_log(session, "info", f"⏭️ Skip: '{t.name}' (postat recent)")
                             continue
                     
-                    # Rate limiting delay
-                    self._wait_with_stop(self._delay_seconds)
-                    if self._stop_event.is_set():
+                    # FIX: Verifică stop înainte de delay
+                    if self._stop_event.is_set() or self._is_manual_stopped():
+                        break
+                    
+                    # Rate limiting delay cu stop check
+                    if self._wait_with_stop(self._delay_seconds):
+                        break
+                    
+                    # FIX: Verifică stop după delay
+                    if self._stop_event.is_set() or self._is_manual_stopped():
                         break
                     
                     # Procesare articol
@@ -438,7 +496,14 @@ class Autoposter:
                     self._current_topic = "Idle"
                 with Session(engine) as session:
                     safe_log(session, "info", f"🔄 Ciclu finalizat: {posted} postate | {skipped} skip | {failed} eșuate din {processed} topicuri")
-                self._stop_event.wait(timeout=5.0)
+                
+                # FIX: Check stop înainte de wait
+                if self._stop_event.is_set() or self._is_manual_stopped():
+                    break
+                    
+                # Wait între cicluri cu check stop
+                if self._wait_with_stop(5.0):
+                    break
                 
         except Exception as exc:  # noqa: BLE001
             with Session(engine) as session:
@@ -446,6 +511,14 @@ class Autoposter:
             with self._lock:
                 self._last_error = str(exc)
                 self._running = False
+        finally:
+            # FIX: Asigură-te că thread-ul se marchează ca oprit
+            with self._lock:
+                self._running = False
+                self._current_topic = None
+            
+            with Session(engine) as session:
+                safe_log(session, "info", "⏹️ Autoposter oprit complet")
 
 
     # --- Research helpers (Google News RSS + simple content extraction) ---

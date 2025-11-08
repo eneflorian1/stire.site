@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, Fragment } from 'react';
+import { useEffect, useMemo, useState, Fragment, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   createCategory,
@@ -777,6 +777,49 @@ function GeminiAdmin() {
   const [logs, setLogs] = useState<AutoposterLog[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [running, setRunning] = useState<boolean>(false);
+  
+  // FIX: Folosim useRef pentru a urmări statusul curent fără re-render
+  const runningRef = useRef<boolean>(false);
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+
+  // FIX: Funcție de polling lightweight pentru status în timp real
+  const pollStatus = useCallback(async () => {
+    try {
+      const [st, lg] = await Promise.all([getAutoposterStatus(), getAutoposterLogs(500)]);
+      setStatus(st);
+      const isRunning = Boolean(st.running);
+      setRunning(isRunning);
+      runningRef.current = isRunning;
+      setLogs(lg);
+    } catch (e) {
+      console.error('Error polling status:', e);
+    }
+  }, []);
+
+  // FIX: Pornește polling automat când componenta este mounted
+  useEffect(() => {
+    const startPolling = () => {
+      // Oprește polling-ul existent dacă există
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+      }
+      
+      // Pornește polling la fiecare 2 secunde
+      pollingRef.current = setInterval(() => {
+        void pollStatus();
+      }, 2000);
+    };
+
+    startPolling();
+
+    // Cleanup la unmount
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+    };
+  }, [pollStatus]);
 
   const reload = useMemo(() => async () => {
     setLoading(true);
@@ -786,25 +829,14 @@ function GeminiAdmin() {
       setApiKey(normalizedKey);
       if (normalizedKey) setAdminApiKey(normalizedKey); else setAdminApiKey(undefined);
       setStatus(st);
-      setRunning(Boolean(st.running));
+      const isRunning = Boolean(st.running);
+      setRunning(isRunning);
+      runningRef.current = isRunning;
       setLogs(lg);
     } finally {
       setLoading(false);
     }
   }, []);
-
-  // Funcție pentru actualizare status fără loading (pentru stop/start)
-  const refreshStatusSilent = async () => {
-    try {
-      const [st, lg] = await Promise.all([getAutoposterStatus(), getAutoposterLogs(500)]);
-      setStatus(st);
-      setRunning(Boolean(st.running));
-      setLogs(lg);
-    } catch (e) {
-      // Ignoră erorile la refresh silent
-      console.error('Error refreshing status:', e);
-    }
-  };
 
   useEffect(() => { void reload(); }, [reload]);
 
@@ -845,60 +877,87 @@ function GeminiAdmin() {
     }
   }
 
+  // FIX: Funcție optimizată pentru Start cu feedback vizual imediat
   async function onStart() {
     try {
-      const st = await autoposterStart();
-      setStatus(st);
-      setRunning(Boolean(st.running));
-      // Actualizează fără loading pentru a evita "Se încarcă..."
-      await refreshStatusSilent();
+      // Update optimistic
+      setRunning(true);
+      runningRef.current = true;
+      
+      await autoposterStart();
+      
+      // Poll imediat după start
+      await pollStatus();
     } catch (e) {
       alert(`Nu am putut porni autoposterul: ${String(e)}`);
-      await refreshStatusSilent();
+      // Revert la starea reală
+      await pollStatus();
     }
   }
+
+  // FIX: Funcție optimizată pentru Stop cu verificare graduală
   async function onStop() {
     try {
+      // Update optimistic - feedback vizual imediat
+      setRunning(false);
+      runningRef.current = false;
+      
       // Trimite comanda de stop
       await autoposterStop();
-      // Actualizează imediat statusul local (optimistic update)
-      setRunning(false);
-      // Așteaptă puțin pentru ca oprirea să se finalizeze (timeout-ul backend este 10s)
-      await new Promise(resolve => setTimeout(resolve, 1200));
-      // Verifică statusul de câteva ori până când confirmăm că s-a oprit
-      let attempts = 0;
-      const maxAttempts = 5;
-      while (attempts < maxAttempts) {
-        const st = await getAutoposterStatus();
-        if (!st.running) {
-          // S-a oprit cu succes - actualizează fără loading
-      setStatus(st);
-          setRunning(false);
-          await refreshStatusSilent();
+      
+      // FIX: Polling smart - verifică statusul la intervale crescânde
+      const checkStop = async (attempt: number = 0, maxAttempts: number = 10): Promise<void> => {
+        if (attempt >= maxAttempts) {
+          // Dacă nu s-a oprit după 10 încercări, forțează refresh final
+          await pollStatus();
           return;
         }
-        // Mai încă rulează, așteaptă puțin și încearcă din nou
-        await new Promise(resolve => setTimeout(resolve, 500));
-        attempts++;
-      }
-      // Dacă după toate încercările încă rulează, actualizează fără loading
-      await refreshStatusSilent();
+        
+        // Așteaptă cu delay crescând: 300ms, 500ms, 800ms, 1200ms, ...
+        const delay = Math.min(300 * Math.pow(1.5, attempt), 3000);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        
+        // Verifică statusul
+        const st = await getAutoposterStatus();
+        
+        if (!st.running) {
+          // S-a oprit cu succes
+          setStatus(st);
+          setRunning(false);
+          runningRef.current = false;
+          
+          // Refresh final pentru logs
+          const lg = await getAutoposterLogs(500);
+          setLogs(lg);
+          return;
+        }
+        
+        // Încă rulează, încercă din nou
+        return checkStop(attempt + 1, maxAttempts);
+      };
+      
+      await checkStop();
+      
     } catch (e) {
       alert(`Nu am putut opri autoposterul: ${String(e)}`);
-      // Actualizează statusul chiar dacă a apărut o eroare, fără loading
-      await refreshStatusSilent();
+      // Revert la starea reală
+      await pollStatus();
     }
   }
+
   async function onReset() {
     try {
       const st = await autoposterReset();
       setStatus(st);
-      setRunning(Boolean(st.running));
-      // Actualizează fără loading pentru a evita "Se încarcă..."
-      await refreshStatusSilent();
+      const isRunning = Boolean(st.running);
+      setRunning(isRunning);
+      runningRef.current = isRunning;
+      
+      // Refresh logs imediat
+      await pollStatus();
     } catch (e) {
       alert(`Nu am putut reseta autoposterul: ${String(e)}`);
-      await refreshStatusSilent();
+      await pollStatus();
     }
   }
 
@@ -917,34 +976,125 @@ function GeminiAdmin() {
           </div>
 
           <div className="card" style={{ padding: 12, marginBottom: 12 }}>
-            <div className="row" style={{ gap: 8, justifyContent: 'center' }}>
-              <button className="btn" onClick={() => void onStart()} disabled={running}>Start</button>
-              <button className="btn secondary" onClick={() => void onStop()} disabled={!running}>Stop</button>
-              <button className="btn secondary" onClick={() => void onReset()}>Reset</button>
+            {/* FIX: Indicatori vizuali îmbunătățiți pentru status */}
+            <div className="row" style={{ gap: 8, marginBottom: 12, alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{
+                width: 12,
+                height: 12,
+                borderRadius: '50%',
+                background: running ? '#22c55e' : '#ef4444',
+                boxShadow: running ? '0 0 8px #22c55e' : '0 0 8px #ef4444',
+                animation: running ? 'pulse 2s infinite' : 'none'
+              }} />
+              <span style={{ fontWeight: 600, color: running ? '#22c55e' : '#ef4444' }}>
+                {running ? 'PORNIT' : 'OPRIT'}
+              </span>
             </div>
+            
+            <div className="row" style={{ gap: 8, justifyContent: 'center' }}>
+              <button 
+                className="btn" 
+                onClick={() => void onStart()} 
+                disabled={running}
+                style={{
+                  opacity: running ? 0.5 : 1,
+                  cursor: running ? 'not-allowed' : 'pointer'
+                }}
+              >
+                ▶️ Start
+              </button>
+              <button 
+                className="btn secondary" 
+                onClick={() => void onStop()} 
+                disabled={!running}
+                style={{
+                  opacity: !running ? 0.5 : 1,
+                  cursor: !running ? 'not-allowed' : 'pointer'
+                }}
+              >
+                ⏹️ Stop
+              </button>
+              <button 
+                className="btn secondary" 
+                onClick={() => void onReset()}
+              >
+                🔄 Reset
+              </button>
+            </div>
+            
             {status && (
-              <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 16, rowGap: 4 }} className="muted">
-                <div><strong>Status</strong></div><div>{running ? 'Pornit' : 'Oprit'}</div>
-                <div><strong>Cheie Gemini</strong></div><div>{apiKey ? 'setată' : 'lipsește'}</div>
-                <div><strong>Articole create</strong></div><div>{status.items_created ?? 0}</div>
-                {status.current_topic ? (<><div><strong>Topic curent</strong></div><div>{status.current_topic}</div></>) : null}
-                <div><strong>Pornit la</strong></div><div>{formatTimestamp(status.started_at ?? null)}</div>
-                <div><strong>Uptime</strong></div><div>{formatUptime(status.started_at ?? null)}</div>
-                {logs.length > 0 ? (<><div><strong>Ultimul eveniment</strong></div><div>{formatTimestamp(logs[0]?.ts)}</div></>) : null}
-                {status.last_error ? (<><div><strong>Eroare</strong></div><div style={{ color: '#ef4444' }}>{status.last_error}</div></>) : null}
+              <div style={{ 
+                marginTop: 16, 
+                display: 'grid', 
+                gridTemplateColumns: '1fr 1fr', 
+                columnGap: 16, 
+                rowGap: 8,
+                padding: 12,
+                background: 'var(--admin-surface-high)',
+                borderRadius: 8
+              }} className="muted">
+                <div><strong>Cheie Gemini</strong></div>
+                <div>{apiKey ? '✅ setată' : '❌ lipsește'}</div>
+                
+                <div><strong>Articole create</strong></div>
+                <div>{status.items_created ?? 0}</div>
+                
+                {status.current_topic ? (
+                  <>
+                    <div><strong>Topic curent</strong></div>
+                    <div style={{ fontWeight: 600, color: '#3b82f6' }}>{status.current_topic}</div>
+                  </>
+                ) : null}
+                
+                <div><strong>Pornit la</strong></div>
+                <div>{formatTimestamp(status.started_at ?? null)}</div>
+                
+                <div><strong>Uptime</strong></div>
+                <div>{formatUptime(status.started_at ?? null)}</div>
+                
+                {logs.length > 0 ? (
+                  <>
+                    <div><strong>Ultimul eveniment</strong></div>
+                    <div>{formatTimestamp(logs[0]?.ts)}</div>
+                  </>
+                ) : null}
+                
+                {status.last_error ? (
+                  <>
+                    <div><strong>Eroare</strong></div>
+                    <div style={{ color: '#ef4444', fontWeight: 600 }}>{status.last_error}</div>
+                  </>
+                ) : null}
               </div>
             )}
           </div>
 
           <div className="card" style={{ padding: 12 }}>
-            <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <div className="title">Jurnale recente</div>
-              <div className="muted" style={{ fontSize: 12 }}>Total: {logs.length} evenimente</div>
+              <div className="muted" style={{ fontSize: 12 }}>
+                Total: {logs.length} evenimente | 
+                <span style={{ marginLeft: 8 }}>
+                  {running ? '🔄 Actualizare automată' : '⏸️ Pausat'}
+                </span>
+              </div>
             </div>
             <LogTree logs={logs} formatTimestamp={formatTimestamp} />
           </div>
         </>
       )}
+      
+      {/* FIX: CSS pentru animația pulse */}
+      <style>{`
+        @keyframes pulse {
+          0%, 100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.5;
+          }
+        }
+      `}</style>
     </div>
   );
 }
