@@ -58,6 +58,9 @@ frontend/tsconfig.tsbuildinfo
 .env.*
 !.env.example
 
+# PM2 ecosystem config (contains secrets, created on server by setup.sh)
+ecosystem.config.js
+
 # -----------------------------
 # Python (server)
 # -----------------------------

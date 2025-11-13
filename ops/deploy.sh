@@ -46,11 +46,39 @@ if [ -f "docker-compose.yml" ] || [ -f "compose.yml" ]; then
   docker compose up -d --remove-orphans
 fi
 
+# Derive admin API key once so backend (API_KEY) and frontend (VITE_API_KEY) stay in sync
+ADMIN_API_KEY_ENV="${API_KEY:-}"
+
+# Try to read from systemd service if not explicitly provided
+if [ -z "$ADMIN_API_KEY_ENV" ] && command -v systemctl >/dev/null 2>&1; then
+  if systemctl list-units --type=service | grep -q "stirix.service"; then
+    SERVICE_FRAGMENT="$(systemctl show -p FragmentPath stirix.service 2>/dev/null | cut -d= -f2 || true)"
+    if [ -n "$SERVICE_FRAGMENT" ] && [ -f "$SERVICE_FRAGMENT" ]; then
+      ADMIN_API_KEY_ENV="$(grep -E '^Environment=API_KEY=' "$SERVICE_FRAGMENT" 2>/dev/null | sed 's/^Environment=API_KEY=//' || true)"
+    fi
+  fi
+fi
+
+# Fallback: try PM2 ecosystem.config.js if present (setup.sh creates it)
+if [ -z "$ADMIN_API_KEY_ENV" ] && [ -f "$APP_DIR/ecosystem.config.js" ]; then
+  ADMIN_API_KEY_ENV="$(grep -E 'API_KEY' "$APP_DIR/ecosystem.config.js" 2>/dev/null | head -1 | sed \"s/.*API_KEY: '\\([^']*\\)'.*/\\1/\" || true)"
+fi
+
+# Final fallback for safety (matches backend default)
+if [ -z "$ADMIN_API_KEY_ENV" ]; then
+  ADMIN_API_KEY_ENV="devkey"
+fi
+
 # Build React frontend (Vite) if Node is available
 if command -v npm >/dev/null 2>&1; then
   if [ -d "frontend" ]; then
     echo "Building frontend..."
-    (cd frontend && npm ci && npm run build)
+    (
+      cd frontend
+      npm ci
+      # Inject the same admin API key used by the backend so /autoposter and /settings calls work in prod
+      VITE_API_KEY="$ADMIN_API_KEY_ENV" npm run build
+    )
   fi
 else
   echo "npm not found; skipping frontend build"
@@ -115,7 +143,10 @@ fi
 
 # PM2 (optional)
 if command -v pm2 >/dev/null 2>&1; then
-  pm2 start ecosystem.config.js || true
+  # Start only if a local ecosystem.config.js exists to avoid noisy errors
+  if [ -f "$APP_DIR/ecosystem.config.js" ]; then
+    pm2 start "$APP_DIR/ecosystem.config.js" || true
+  fi
   pm2 reload all || true
   pm2 save || true
 fi
