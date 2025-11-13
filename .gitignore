@@ -58,9 +58,6 @@ frontend/tsconfig.tsbuildinfo
 .env.*
 !.env.example
 
-# PM2 ecosystem config (contains secrets, created on server by setup.sh)
-ecosystem.config.js
-
 # -----------------------------
 # Python (server)
 # -----------------------------
@@ -139,6 +136,8 @@ DerivedData/
 *.tgz
 *.tar.gz
 *.zip
+# PM2 ecosystem config (generated on server, not committed)
+ecosystem.config.js
 # Gradle files
 .gradle/
 build/
