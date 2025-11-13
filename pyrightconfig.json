@@ -1,0 +1,17 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/pyright/main/packages/vscode-pyright/schemas/pyrightconfig.schema.json",
+  "venvPath": "server",
+  "venv": ".venv",
+  "pythonVersion": "3.13",
+  "typeCheckingMode": "basic",
+  "reportMissingImports": true,
+  "executionEnvironments": [
+    {
+      "root": "server",
+      "extraPaths": [
+        "server"
+      ]
+    }
+  ]
+}
+

@@ -1,0 +1,171 @@
+# Root .gitignore for monorepo: Flutter app, React (Vite) frontend, Python server
+
+# -----------------------------
+# OS / Editor junk
+# -----------------------------
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Icon?
+.Spotlight-V100
+.Trashes
+*.swp
+*.swo
+*.swn
+*.swm
+*.tmp
+*.bak
+*.orig
+*.rej
+
+# -----------------------------
+# Logs
+# -----------------------------
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# -----------------------------
+# IDE / Project files
+# -----------------------------
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+*.code-workspace
+
+# -----------------------------
+# Node / Vite (frontend)
+# -----------------------------
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+.tsbuildinfo
+frontend/tsconfig.tsbuildinfo
+.pnp.*
+**/.pnp.*
+.parcel-cache/
+**/.cache/
+.vite/
+**/.vite/
+
+# Environment files (keep examples)
+.env
+.env.*
+!.env.example
+
+# -----------------------------
+# Python (server)
+# -----------------------------
+.venv/
+venv/
+**/.venv/
+**/venv/
+**/__pycache__/
+**/*.py[cod]
+.mypy_cache/
+**/.mypy_cache/
+.pytest_cache/
+**/.pytest_cache/
+.ruff_cache/
+**/.ruff_cache/
+.tox/
+**/.tox/
+**/pip-wheel-metadata/
+
+# Local databases / state
+*.sqlite
+*.sqlite3
+*.db
+!news.db
+!server/news.db
+
+# -----------------------------
+# Dart / Flutter (app)
+# -----------------------------
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.metadata
+**/.packages
+**/build/
+**/coverage/
+
+# Flutter ephemeral platform dirs
+**/ios/Flutter/.last_build_id
+**/ios/Flutter/ephemeral/
+**/macos/Flutter/ephemeral/
+**/linux/flutter/ephemeral/
+**/windows/flutter/ephemeral/
+
+# CocoaPods (Flutter iOS/macOS)
+**/ios/Pods/
+**/macos/Pods/
+
+# -----------------------------
+# Android / Gradle
+# -----------------------------
+**/.gradle/
+**/captures/
+**/cxx/
+**/.externalNativeBuild/
+**/android/local.properties
+**/*.keystore
+**/*.jks
+
+# -----------------------------
+# Xcode
+# -----------------------------
+**/*.mode1v3
+**/*.mode2v3
+**/*.perspectivev3
+**/*.pbxuser
+**/xcuserdata/
+**/*.xcuserstate
+**/*.xccheckout
+**/*.moved-aside
+DerivedData/
+
+# -----------------------------
+# Misc
+# -----------------------------
+*.tgz
+*.tar.gz
+*.zip
+# Gradle files
+.gradle/
+build/
+
+# Local configuration file (sdk path, etc)
+local.properties
+
+# Log/OS Files
+*.log
+
+# Android Studio generated files and folders
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+output.json
+
+# IntelliJ
+*.iml
+.idea/
+misc.xml
+deploymentTargetDropDown.xml
+render.experimental.xml
+
+# Keystore files
+*.jks
+*.keystore
+
+# Google Services (e.g. APIs or Firebase)
+google-services.json
+
+# Android Profiling
+*.hprof

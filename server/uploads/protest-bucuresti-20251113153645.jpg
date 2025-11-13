@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<title>Home - Bucurestiul meu drag</title>
+	<meta name="description" content="Centrul de Memorie Vizuala a Bucurestiului, un album cu fotografii, personalitati si evenimente ale orasului."/>
+	<meta name="viewport" content="width=device-width, initial-scale=1"/>
+	<link href="/favicon.ico" type="image/x-icon" rel="icon"/><link href="/favicon.ico" type="image/x-icon" rel="shortcut icon"/>
+
+	<meta property="og:url" content="https://bucurestiulmeudrag.ro/"/>
+	<meta name="twitter:url" content="https://bucurestiulmeudrag.ro/"/>
+	<meta property="og:title" content="Home - Bucurestiul meu drag"/>
+	<meta name="twitter:title" content="Home - Bucurestiul meu drag"/>
+	<meta property="og:locale" content="ro_RO"/>
+	<meta property="og:type" content="website"/>
+	<meta property="og:image" content="https://bucurestiulmeudrag.ro/img/logo_bmd_wide.png"/>
+	<meta property="fb:app_id" content="1583998688569968"/>
+	<meta name="twitter:card" content="summary"/>
+	<meta name="twitter:image" content="https://bucurestiulmeudrag.ro/img/logo_bmd_wide.png"/>
+	
+	<meta name="theme-color" content="#000000">
+	<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+	<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css">
+
+	<link href='//fonts.googleapis.com/css?family=Open+Sans:300,400,600,700' rel='stylesheet' type='text/css'>
+	<link href='//fonts.googleapis.com/css?family=Roboto:100,300,400,500,700' rel='stylesheet' type='text/css'>
+	<link href="//fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+	<link href="//code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css" rel="stylesheet">
+	
+	<link rel="stylesheet" type="text/css" href="/css/material.min.css"/>
+	<link rel="stylesheet" type="text/css" href="/css/ripples.min.css"/>
+	<link rel="stylesheet" type="text/css" href="/css/sweet-alert.css"/>
+	<link rel="stylesheet" type="text/css" href="/css/font-awesome.min.css"/>
+	<link rel="stylesheet" type="text/css" href="/css/justifiedGallery.min.css"/>
+	<link rel="stylesheet" type="text/css" href="/css/photoswipe.css"/>
+	<link rel="stylesheet" type="text/css" href="/css/default-skin/default-skin.css"/>
+	<link rel="stylesheet" type="text/css" href="/css/animate.min.css"/>
+	<link rel="stylesheet" type="text/css" href="/css/style-bmd.css"/>
+	<!--[if lt IE 9]>
+		<script src="//oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+		<script src="//oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+	<![endif]-->
+
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+
+		<script>
+		"use strict";
+
+		window.onpopstate = function(e){
+			if (e.state) {
+				//console.log(e.state);
+				if (typeof e.state.url != 'undefined') {
+					//window.location.href = e.state.url;
+				}
+			}
+		};
+
+		var niceScrollObj = false;
+		var initNiceScroll = function() {
+			niceScrollObj = $("html").niceScroll({
+				zindex: 1050,
+				mousescrollstep: 50,
+				cursorwidth: "6px",
+				cursorborder: "none",
+				horizrailenabled: false
+			});
+		};
+
+		$(document).ready(function(){
+			$.material.init();
+			initNiceScroll();
+			$("#sidebar-inner, .navbar-select").niceScroll({
+				zindex: 1050,
+				cursorwidth: "4px",
+				cursorborder: "none",
+			});
+			//$.material.ripples();
+
+			/**
+			$("#container").animsition({
+				inClass               :   'fade-in', //zoom-in-sm
+				outClass              :   'fade-out', //zoom-out-sm
+				inDuration            :    800,
+				outDuration           :    500,
+				//linkElement           :   '.animsition-link',
+				linkElement   		  :   'a:not([target="_blank"]):not([href^=#]):not([href^=javascript]):not([class~=dropdown-toggle]):not([rel^=gallery]):not([data-imagelightbox])',
+				loading               :    true,
+				loadingParentElement  :   'body', //animsition wrapper element
+				loadingClass          :   'animsition-loading',
+				unSupportCss          : [ 'animation-duration', '-webkit-animation-duration', '-o-animation-duration' ],
+				//"unSupportCss" option allows you to disable the "animsition" in case the css property in the array is not supported by your browser.
+				//The default setting is to disable the "animsition" in a browser that does not support "animation-duration".
+				overlay               :   false,
+				overlayClass          :   'animsition-overlay-slide',
+				overlayParentElement  :   'body'
+			});
+			/**/
+		});
+	</script>
+
+	<link rel="stylesheet" type="text/css" href="//cdnjs.cloudflare.com/ajax/libs/cookieconsent2/3.0.3/cookieconsent.min.css" />
+	<script src="//cdnjs.cloudflare.com/ajax/libs/cookieconsent2/3.0.3/cookieconsent.min.js"></script>
+	<script>
+		// https://cookieconsent.insites.com/download/
+        window.addEventListener("load", function(){
+            window.cookieconsent.initialise({
+                "palette": {
+                    "popup": {
+                        "background": "#333333",
+                        "text": "#ffffff"
+                    },
+                    "button": {
+                        "background": "#ffde00",
+                        "text": "#000000"
+                    }
+                },
+                "content": {
+                    "message": "Acest website utilizează cookie-uri pentru a funcționa și a vă asigura că beneficiați de cea mai bună experiență.",
+                    "dismiss": "Am înțeles",
+                    "link": "Citește mai mult",
+                    "href": "https://bucurestiulmeudrag.ro/politica-de-confidentialitate"
+                }
+            })});
+	</script>
+</head>
+<body class="guest">
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-2VT4FGYWLE"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        
+        gtag('config', 'G-2VT4FGYWLE', {
+            'user_id': '' || undefined
+        });
+    </script>
+	<div id="fb-root"></div>
+	<script>
+		window.fbAsyncInit = function() {
+			FB.init({
+				appId      : '1583998688569968',
+				xfbml      : true,
+				version    : 'v3.0'
+			});
+			FB.AppEvents.logPageView();
+		};
+		(function(d, s, id){
+			var js, fjs = d.getElementsByTagName(s)[0];
+			if (d.getElementById(id)) {return;}
+			js = d.createElement(s); js.id = id;
+			js.src = "https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v3.0&appId=1583998688569968";
+			fjs.parentNode.insertBefore(js, fjs);
+		}(document, 'script', 'facebook-jssdk'));</script>
+	<script src="//platform.twitter.com/widgets.js" charset="utf-8" async defer></script>
+	<script src="https://apis.google.com/js/platform.js" async defer> {lang: 'ro'} </script>
+	<script type="text/javascript">
+		(function(d){
+			var f = d.getElementsByTagName('SCRIPT')[0], p = d.createElement('SCRIPT');
+			p.type = 'text/javascript';
+			p.async = true;
+			p.defer = true;
+			p['data-pin-build'] = 'parsePinBtns';
+			p.src = '//assets.pinterest.com/js/pinit.js';
+			f.parentNode.insertBefore(p, f);
+		}(document));
+	</script>
+	<script>
+	function bmdLog() {}
+	function bmdErr() {}
+	function bmdAlert() {}
+</script>
+<header class="navbar navbar-fixed-top" role="navigation">
+	<div class="navbar-header">
+	<div id="logo"><div><span></span></div><figure><a href="/"><img src="/img/logo_bmd_sml.png" alt="Bucurestiul meu drag" border="0"/></a></figure></div>		<div class="nav-search visible-xs">
+			<ul class="nav">
+				<li>
+						<div class="search-floating search-floating-xs">
+		<div class="search-floating-inner flipInX animated">
+
+			<form class="search-floating-form" role="search" action="/cauta" method="get">
+				<div class="search-floating-query col-xs-6 pull-left">
+					<input type="text" class="query form-control" name="q" placeholder="Cauta">
+				</div>
+
+				<div class="search-floating-button no-padd pull-right">
+					<button class="submit" type="submit"><i class="fa fa-search"></i></button>
+				</div>
+
+				<div class="search-select-container no-padd">
+					<select name="type" id="search-floating-select">
+						<option value="foto" selected>Fotografii</option>
+						<option value="blog">Articole</option>
+					</select>
+				</div>
+			</form>
+
+		</div>
+	</div>				</li>
+			</ul>
+		</div>
+
+		<div class="navbar-inverse">
+			<button type="button" id="nav-button" class="navbar-toggle collapsed" data-toggle="collapse" data-target=".top-navigation">
+				<span class="sr-only">Toggle navigation</span>
+				<span class="icon-bar"></span>
+				<span class="icon-bar"></span>
+				<span class="icon-bar"></span>
+			</button>
+		</div>
+
+	</div>
+
+	<div class="top-navigation">
+		<nav class="nav-main navbar-wrap">
+			<ul class="nav navbar-nav">
+				<li class="tr-all-200ms">
+					<a href="/despre-noi" class=" tr-all-200ms"><i class="material-icons">&#xE8A3;</i><span class="hidden-sm tr-all-200ms"> Despre noi</span></a>				</li>
+				<li class="tr-all-200ms">
+					<a href="/prieteni" class=" tr-all-200ms"><i class="material-icons">&#xE87C;</i><span class="hidden-sm tr-all-200ms"> Prieteni</span></a>				</li>
+				<li class="tr-all-200ms">
+					<a href="/fotografii" class=" tr-all-200ms"><i class="ion ion-images"></i><span class="hidden-sm tr-all-200ms"> Fotografii</span></a>				</li>
+				<li class="tr-all-200ms">
+					<a href="/evenimente" class=" tr-all-200ms"><i class="material-icons">&#xE878;</i><span class="hidden-sm tr-all-200ms"> Evenimente</span></a>				</li>
+				<li class="tr-all-200ms icon-margin">
+					<a href="/blog" class=" tr-all-200ms"><i class="material-icons">&#xE0E0;</i><span class="hidden-sm tr-all-200ms"> Blog</span></a>				</li>
+				<li class="tr-all-200ms hidden-xs">
+					<div class="search-header"><div class="bounceIn animated animated-delay"><i class="material-icons">&#xE8B6;</i></div></div>				</li>
+				<!--
+				<li class="tr-all-200ms hidden-xs">
+									</li>
+				-->
+			</ul>
+		</nav>
+
+		<nav class="nav-secondary navbar-wrap">
+			<ul class="nav navbar-nav" data-dropdown-in="fadeIn" data-dropdown-out="fadeOut">
+
+				<li class="tr-all-200ms show-compare"><a href="javascript:void(0);" class="show-compare tr-all-200ms"><i class="material-icons" title="Compara fotografii" data-toggle="tooltip" data-placement="bottom">&#xE3B9;</i><span class="visible-xs-inline"> Compara</span></a></li><li class="tr-all-200ms"><a href="/login" class=" tr-all-200ms"><i class="ion ion-android-person" title="Cont"></i> <span class="visible-xs-inline"> Login</span></a></li>			</ul>
+		</nav>
+	</div>
+
+	<div class="clearfix"></div>
+	<div class="navbar-select tr-all-200ms-children">
+		<ul class="nav pull-left">
+			<li>
+				<a href="javascript:void(0);" class="remove-selected header-button" data-title="Inchide"><i class="material-icons noMargin">&#xE5C9;</i></a>
+			</li>
+			<li><span class="split-light-v"></span></li>
+			<li>
+				<a href="javascript:void(0);" class="save-selected header-button" data-title="Retine selectia"><i class="material-icons">&#xE161;</i></a>
+			</li>
+			<li>
+				<a href="javascript:void(0);" class="restore-selected header-button" data-title="Reda selectia"><i class="material-icons">&#xE8BA;</i></a>
+			</li>
+			<li>
+				<a href="javascript:void(0);" class="delete-selected header-button" data-title="Anuleaza selectia"><i class="material-icons">&#xE15C;</i></a>
+			</li>
+			<li><span class="split-light-v"></span></li>
+			<li>
+				<a href="javascript:void(0);" class="add-to-galleries header-button" data-title="Adauga in Galerie" data-toggle="modal" data-target=".gallery-add-foto-modal"><i class="material-icons button add-to-gallery-multiple">&#xE39D;</i></a>
+			</li>
+			<li class="hidden-guest"><span class="split-light-v"></span></li>
+			<li>
+				<a href="javascript:void(0);" class="compare-selected header-button" data-title="Compara">
+					<i class="material-icons">&#xE8F4;</i>
+					<div class="img-compared hidden-xs"></div>
+					<span class="img-number-compared hidden-xs"></span>
+				</a>
+			</li>
+		</ul>
+		<ul class="nav pull-right hidden-xs">
+			<li class="pull-right">
+
+			</li>
+		</ul>
+	</div>
+
+		<div class="search-floating search-desktop hidden-xs">
+		<div class="search-floating-inner flipInX animated">
+
+			<form class="search-floating-form" role="search" action="/cauta" method="get">
+				<div class="search-floating-query col-xs-8 pull-left">
+					<input type="text" class="query form-control" name="q" placeholder="Cauta">
+				</div>
+
+				<div class="search-floating-button no-padd pull-right">
+					<button class="submit" type="submit"><i class="fa fa-search"></i></button>
+				</div>
+
+				<div class="search-select-container no-padd">
+					<select name="type" id="search-floating-select">
+						<option value="foto" selected>Fotografii</option>
+						<option value="blog">Articole</option>
+					</select>
+				</div>
+			</form>
+
+		</div>
+	</div>
+</header>
+	<div id="container" class=" tr-margin-500ms">
+
+		<div id="content" class="container-fluid">
+			<div id="floatingMessageContainer"><i class="material-icons">&#xE88F;</i> <div id="floatingMessage" class=""></div></div>
+
+			
+			
+	<script type="text/javascript" src="/js/scripts.gallery.js"></script>
+	<script type="text/javascript" src="/js/jquery.ellipsis.min.js"></script>
+
+	<div class="row section-separator fadeIn animated animated-delay-sm">
+		<div class="col-xs-12 col-sm-9 foto-featured-title">
+			<h1 class="section-title">
+				<a href="/fotografii/586407bf-f454-40d3-8896-9367592b13d5" class="tr-all-500ms"><span>Fotografia zilei</span><br><span class="no-transform section-subtitle">Fabrica de ulei Solaris</span></a>			</h1>
+		</div>
+		<div class="col-xs-12 col-sm-3 hidden-xs">
+			<h1 class="section-title">
+				<a href="/blog" class="tr-all-500ms">Ultimele<br>articole</a>			</h1>
+		</div>
+	</div>
+	<div class="clearfix"></div>
+
+	<section class="row section-content vertical-center-wrap zoomIn animated animated-delay-sm">
+		<div class="col-xs-12 col-sm-9 home-left">
+			<div class="row">
+			<div class="col-xs-12 no-padd featured-foto-container tr-all-200ms vertical-center text-center"><div class="thumb-wrap withripple guest tr-all-200ms-children" rel="gallery-wrap" data-gallerytype="gallery" data-uid="586407bf-f454-40d3-8896-9367592b13d5" data-author="" data-author-url="" data-year="2005"> <div class="thumb-controls"><button class="fa fa-check-circle fa-2x check-full"></button><button class="fa fa-circle-thin fa-2x check-hollow"></button><i class="material-icons button add-to-gallery">&#xE39D;</i><button class="fa fa-heart fa-2x check-fav"></button><button class="fa fa-heart-o fa-2x check-fav-o"></button></div><a href="/img/photos/s1920/586407bf-f454-40d3-8896-9367592b13d5.jpg"  class="image-link" data-size="1920x1436"><div class="top-shadow"></div><img src="/img/photos/s1920/586407bf-f454-40d3-8896-9367592b13d5.jpg" alt="Fabrica de ulei Solaris"  class="thumb-image img-responsive center-block tr-all-200ms"> </a> <div class="caption text-center"><a href="/fotografii/586407bf-f454-40d3-8896-9367592b13d5">Fabrica de ulei Solaris</a></div></div>
+</div><div class="author-image text-center mt5 mb5"><span>Fotograf: </span><a href="/profil/AndreiBirsan" class="text-center tr-all-500ms">Andrei Birsan</a><div class="clearfix mb5"></div><a href="/profil/AndreiBirsan" class="text-center tr-all-500ms"><img src="/img/users/th-59cd378a-a2e0-48b1-8b8d-41f4592b13d5.jpg" alt="Profile Picture" class="img-small img-circle vertical-middle"/></a></div>			</div>
+		</div>
+		<div class="col-xs-12 col-sm-3 home-right">
+
+			<div class="row section-separator fadeIn animated animated-delay-sm visible-xs mb1e">
+				<div class="col-xs-12">
+					<h2 class="section-title">
+						<a href="javascript:void(0);" class="tr-all-500ms">Ultimele articole</a>					</h2>
+				</div>
+			</div>
+			<div class="row">
+				<div class="clearfix"></div>
+				<a href="/eveniment/trecut-au-anii-vernisajul-2025" class="col-xs-6 col-sm-12 pd0 article-row tr-all-200ms"><span class="article-row-inner ml05e ml0-xs"><span class="post-image-homepage vertical-center vertical-middle"><img src="/img/uploads/articole/th-9370c92d-75e8-4de1-a8ad-c1d404cbbe80.jpg" alt="Trecut-au anii vernisajul 2025" class="img-responsive vertical-center vertical-middle"/></span><span class="post-title-homepage vertical-middle">Trecut-au anii vernisajul 2025</span></span></a><a href="/eveniment/trecut-au-anii-vernisajul-2024" class="col-xs-6 col-sm-12 pd0 article-row tr-all-200ms"><span class="article-row-inner ml05e ml0-xs"><span class="post-image-homepage vertical-center vertical-middle"><img src="/img/uploads/articole/th-f06feea4-dc36-4a5c-bd84-2c7f15be46ff.jpg" alt="Trecut-au anii vernisajul 2024" class="img-responsive vertical-center vertical-middle"/></span><span class="post-title-homepage vertical-middle">Trecut-au anii vernisajul 2024</span></span></a><div class="clearfix"></div><a href="/eveniment/trecut-au-anii-2023" class="col-xs-6 col-sm-12 pd0 article-row tr-all-200ms"><span class="article-row-inner ml05e ml0-xs"><span class="post-image-homepage vertical-center vertical-middle"><img src="/img/uploads/articole/th-47a13bd8-0277-483c-a34f-d5cb6dc9be5f.jpg" alt="Trecut-au anii vernisajul 2023" class="img-responsive vertical-center vertical-middle"/></span><span class="post-title-homepage vertical-middle">Trecut-au anii vernisajul 2023</span></span></a><a href="/eveniment/trecut-au-anii-vernisajul" class="col-xs-6 col-sm-12 pd0 article-row tr-all-200ms"><span class="article-row-inner ml05e ml0-xs"><span class="post-image-homepage vertical-center vertical-middle"><img src="/img/uploads/articole/th-577ba684-e6af-4e80-9c84-c33216f1e5cc.jpg" alt="Trecut-au anii vernisajul 2022" class="img-responsive vertical-center vertical-middle"/></span><span class="post-title-homepage vertical-middle">Trecut-au anii vernisajul 2022</span></span></a><div class="clearfix"></div>			</div>
+		</div>
+	</section>
+	<script>
+		"use strict";
+
+		var changeFotoHeight = function() {
+			var windowHeight = $(window).height();
+			var containerMagnification = 0.75;
+			var containerElem = $('.featured-foto-container');
+			var fotoElem = $('.featured-foto-container img');
+			var fotoElemHeight = fotoElem.height();
+			var actualContainerHeight = containerElem.height();
+			var newContainerHeight = Math.round(windowHeight * containerMagnification);
+			containerElem.css('max-height', newContainerHeight);
+			var imgMarginTop = fotoElemHeight > actualContainerHeight ? -1*Math.round((fotoElemHeight - actualContainerHeight)/2) : -1*Math.round((actualContainerHeight - fotoElemHeight)/2);
+			fotoElem.css('margin-top', imgMarginTop);
+		};
+
+		$(document).ready(function() {
+			initPhotoSwipeFromDOM('.featured-foto-container');
+			changeFotoHeight();
+			var ellipsisLines = 3;
+			if (isMobile) {
+				ellipsisLines = 2;
+			}
+			$('.post-title-homepage').ellipsis({ lines: ellipsisLines, responsive: true });
+			setTimeout(changeFotoHeight, 50);
+			setTimeout(changeFotoHeight, 250);
+		});
+
+		$(window).resize(function(){
+			changeFotoHeight();
+			setTimeout(changeFotoHeight, 50);
+			setTimeout(changeFotoHeight, 250);
+		});
+	</script>
+	<div class="clearfix"></div>
+
+
+<div class="row section-separator fadeIn animated animated-delay-lg">
+	<div class="col-xs-12">
+		<h1 class="section-title">
+		<a href="/fotografii" class="tr-all-500ms">Ultimele fotografii</a>		</h1>
+	</div>
+</div>
+<div class="clearfix"></div>
+
+<section class="row section-content zoomIn animated animated-delay-lg m0">
+	<div class="gallery-trim">
+	<div class="thumb-wrap withripple guest tr-all-500ms-children" rel="gallery-wrap" data-gallerytype="gallery" data-uid="701295b7-f00c-4f69-8f20-0310d00c5b59" data-author="Andrei Birsan" data-author-url="/profil/AndreiBirsan/" data-year="2025"> <div class="thumb-controls"><button class="fa fa-check-circle fa-2x check-full"></button><button class="fa fa-circle-thin fa-2x check-hollow"></button><i class="material-icons button add-to-gallery">&#xE39D;</i><button class="fa fa-heart fa-2x check-fav"></button><button class="fa fa-heart-o fa-2x check-fav-o"></button></div><a href="/img/photos/s1920/701295b7-f00c-4f69-8f20-0310d00c5b59.jpg"  class="image-link" data-size="1920x1005"><div class="top-shadow"></div><img src="/img/photos/s480/701295b7-f00c-4f69-8f20-0310d00c5b59.jpg" alt="Afis expozitia Trecut-au anii 2025"  class="thumb-image"> </a> <div class="caption text-center"><a href="/fotografii/701295b7-f00c-4f69-8f20-0310d00c5b59">Afis expozitia Trecut-au anii 2025</a></div></div>
+<div class="thumb-wrap withripple guest tr-all-500ms-children" rel="gallery-wrap" data-gallerytype="gallery" data-uid="e6fe1e63-f7e2-40da-8223-e3eb7d3b080e" data-author="thatspongy" data-author-url="/autor/thatspongy/" data-year="2025"> <div class="thumb-controls"><button class="fa fa-check-circle fa-2x check-full"></button><button class="fa fa-circle-thin fa-2x check-hollow"></button><i class="material-icons button add-to-gallery">&#xE39D;</i><button class="fa fa-heart fa-2x check-fav"></button><button class="fa fa-heart-o fa-2x check-fav-o"></button></div><a href="/img/photos/s1920/e6fe1e63-f7e2-40da-8223-e3eb7d3b080e.jpg"  class="image-link" data-size="2560x1706"><div class="top-shadow"></div><img src="/img/photos/s480/e6fe1e63-f7e2-40da-8223-e3eb7d3b080e.jpg" alt="Metrou 1302-2302 "Mures" plecand din statia Aparatorii Patriei"  class="thumb-image"> </a> <div class="caption text-center"><a href="/fotografii/e6fe1e63-f7e2-40da-8223-e3eb7d3b080e">Metrou 1302-2302 &quot;Mures&quot; plecand din statia Aparatorii Patriei</a></div></div>
+<div class="thumb-wrap withripple guest tr-all-500ms-children" rel="gallery-wrap" data-gallerytype="gallery" data-uid="da78f68c-8804-4729-85cb-30140254404d" data-author="thatspongy" data-author-url="/autor/thatspongy/" data-year="2025"> <div class="thumb-controls"><button class="fa fa-check-circle fa-2x check-full"></button><button class="fa fa-circle-thin fa-2x check-hollow"></button><i class="material-icons button add-to-gallery">&#xE39D;</i><button class="fa fa-heart fa-2x check-fav"></button><button class="fa fa-heart-o fa-2x check-fav-o"></button></div><a href="/img/photos/s1920/da78f68c-8804-4729-85cb-30140254404d.jpg"  class="image-link" data-size="2560x1706"><div class="top-shadow"></div><img src="/img/photos/s480/da78f68c-8804-4729-85cb-30140254404d.jpg" alt="Metrou CAF BM3 1319-2319 "Cibin" in retragere din circulatie"  class="thumb-image"> </a> <div class="caption text-center"><a href="/fotografii/da78f68c-8804-4729-85cb-30140254404d">Metrou CAF BM3 1319-2319 &quot;Cibin&quot; in retragere din circulatie</a></div></div>
+<div class="thumb-wrap withripple guest tr-all-500ms-children" rel="gallery-wrap" data-gallerytype="gallery" data-uid="a72fa9b7-b14e-44c7-a37c-63c3caec9d10" data-author="Mihai Petre" data-author-url="/profil/mihai/" data-year="2025"> <div class="thumb-controls"><button class="fa fa-check-circle fa-2x check-full"></button><button class="fa fa-circle-thin fa-2x check-hollow"></button><i class="material-icons button add-to-gallery">&#xE39D;</i><button class="fa fa-heart fa-2x check-fav"></button><button class="fa fa-heart-o fa-2x check-fav-o"></button></div><a href="/img/photos/s1920/a72fa9b7-b14e-44c7-a37c-63c3caec9d10.jpg"  class="image-link" data-size="2160x1440"><div class="top-shadow"></div><img src="/img/photos/s480/a72fa9b7-b14e-44c7-a37c-63c3caec9d10.jpg" alt="Victorie Nicușor Dan - Alegeri Prezidențiale 2025"  class="thumb-image"> </a> <div class="caption text-center"><a href="/fotografii/a72fa9b7-b14e-44c7-a37c-63c3caec9d10">Victorie Nicușor Dan - Alegeri Prezidențiale 2025</a></div></div>
+<div class="thumb-wrap withripple guest tr-all-500ms-children" rel="gallery-wrap" data-gallerytype="gallery" data-uid="2c180bf2-1094-4ba5-a788-cd86314c7bbe" data-author="Mihai Petre" data-author-url="/profil/mihai/" data-year="2025"> <div class="thumb-controls"><button class="fa fa-check-circle fa-2x check-full"></button><button class="fa fa-circle-thin fa-2x check-hollow"></button><i class="material-icons button add-to-gallery">&#xE39D;</i><button class="fa fa-heart fa-2x check-fav"></button><button class="fa fa-heart-o fa-2x check-fav-o"></button></div><a href="/img/photos/s1920/2c180bf2-1094-4ba5-a788-cd86314c7bbe.jpg"  class="image-link" data-size="2160x1440"><div class="top-shadow"></div><img src="/img/photos/s480/2c180bf2-1094-4ba5-a788-cd86314c7bbe.jpg" alt="Victorie Nicușor Dan - Alegeri Prezidențiale 2025"  class="thumb-image"> </a> <div class="caption text-center"><a href="/fotografii/2c180bf2-1094-4ba5-a788-cd86314c7bbe">Victorie Nicușor Dan - Alegeri Prezidențiale 2025</a></div></div>
+<div class="thumb-wrap withripple guest tr-all-500ms-children" rel="gallery-wrap" data-gallerytype="gallery" data-uid="0210fe2b-daf5-4730-8cbd-5c4f465651f9" data-author="Mihai Petre" data-author-url="/profil/mihai/" data-year="2025"> <div class="thumb-controls"><button class="fa fa-check-circle fa-2x check-full"></button><button class="fa fa-circle-thin fa-2x check-hollow"></button><i class="material-icons button add-to-gallery">&#xE39D;</i><button class="fa fa-heart fa-2x check-fav"></button><button class="fa fa-heart-o fa-2x check-fav-o"></button></div><a href="/img/photos/s1920/0210fe2b-daf5-4730-8cbd-5c4f465651f9.jpg"  class="image-link" data-size="2160x1440"><div class="top-shadow"></div><img src="/img/photos/s480/0210fe2b-daf5-4730-8cbd-5c4f465651f9.jpg" alt="Victorie Nicușor Dan - Alegeri Prezidențiale 2025"  class="thumb-image"> </a> <div class="caption text-center"><a href="/fotografii/0210fe2b-daf5-4730-8cbd-5c4f465651f9">Victorie Nicușor Dan - Alegeri Prezidențiale 2025</a></div></div>
+<div class="thumb-wrap withripple guest tr-all-500ms-children" rel="gallery-wrap" data-gallerytype="gallery" data-uid="21f017bd-4b98-4320-9284-7f981f74434a" data-author="Mihai Petre" data-author-url="/profil/mihai/" data-year="2025"> <div class="thumb-controls"><button class="fa fa-check-circle fa-2x check-full"></button><button class="fa fa-circle-thin fa-2x check-hollow"></button><i class="material-icons button add-to-gallery">&#xE39D;</i><button class="fa fa-heart fa-2x check-fav"></button><button class="fa fa-heart-o fa-2x check-fav-o"></button></div><a href="/img/photos/s1920/21f017bd-4b98-4320-9284-7f981f74434a.jpg"  class="image-link" data-size="2160x1440"><div class="top-shadow"></div><img src="/img/photos/s480/21f017bd-4b98-4320-9284-7f981f74434a.jpg" alt="Victorie Nicușor Dan - Alegeri Prezidențiale 2025"  class="thumb-image"> </a> <div class="caption text-center"><a href="/fotografii/21f017bd-4b98-4320-9284-7f981f74434a">Victorie Nicușor Dan - Alegeri Prezidențiale 2025</a></div></div>
+<div class="thumb-wrap withripple guest tr-all-500ms-children" rel="gallery-wrap" data-gallerytype="gallery" data-uid="103faf13-62e8-46f3-b33a-9b7d1d92118e" data-author="Rares Petrachescu" data-author-url="/autor/rares-petrachescu/" data-year="2011"> <div class="thumb-controls"><button class="fa fa-check-circle fa-2x check-full"></button><button class="fa fa-circle-thin fa-2x check-hollow"></button><i class="material-icons button add-to-gallery">&#xE39D;</i><button class="fa fa-heart fa-2x check-fav"></button><button class="fa fa-heart-o fa-2x check-fav-o"></button></div><a href="/img/photos/s1920/103faf13-62e8-46f3-b33a-9b7d1d92118e.jpg"  class="image-link" data-size="2048x1536"><div class="top-shadow"></div><img src="/img/photos/s480/103faf13-62e8-46f3-b33a-9b7d1d92118e.jpg" alt="Apusul soarelui peste parful Tineretului"  class="thumb-image"> </a> <div class="caption text-center"><a href="/fotografii/103faf13-62e8-46f3-b33a-9b7d1d92118e">Apusul soarelui peste parful Tineretului</a></div></div>
+<div class="thumb-wrap withripple guest tr-all-500ms-children" rel="gallery-wrap" data-gallerytype="gallery" data-uid="feed3cc8-2f94-4c1d-b547-3dd990da4eb2" data-author="Rares Petrachescu" data-author-url="/autor/rares-petrachescu/" data-year="2004"> <div class="thumb-controls"><button class="fa fa-check-circle fa-2x check-full"></button><button class="fa fa-circle-thin fa-2x check-hollow"></button><i class="material-icons button add-to-gallery">&#xE39D;</i><button class="fa fa-heart fa-2x check-fav"></button><button class="fa fa-heart-o fa-2x check-fav-o"></button></div><a href="/img/photos/s1920/feed3cc8-2f94-4c1d-b547-3dd990da4eb2.jpg"  class="image-link" data-size="1600x1200"><div class="top-shadow"></div><img src="/img/photos/s480/feed3cc8-2f94-4c1d-b547-3dd990da4eb2.jpg" alt="Casa Presei Libere"  class="thumb-image"> </a> <div class="caption text-center"><a href="/fotografii/feed3cc8-2f94-4c1d-b547-3dd990da4eb2">Casa Presei Libere</a></div></div>
+<div class="thumb-wrap withripple guest tr-all-500ms-children" rel="gallery-wrap" data-gallerytype="gallery" data-uid="b039ee55-117b-4392-9c0b-7360418e60ec" data-author="Petre Florentina Gabriela" data-author-url="/profil/Bitzu/" data-year="2023"> <div class="thumb-controls"><button class="fa fa-check-circle fa-2x check-full"></button><button class="fa fa-circle-thin fa-2x check-hollow"></button><i class="material-icons button add-to-gallery">&#xE39D;</i><button class="fa fa-heart fa-2x check-fav"></button><button class="fa fa-heart-o fa-2x check-fav-o"></button></div><a href="/img/photos/s1920/b039ee55-117b-4392-9c0b-7360418e60ec.jpg"  class="image-link" data-size="2560x1919"><div class="top-shadow"></div><img src="/img/photos/s480/b039ee55-117b-4392-9c0b-7360418e60ec.jpg" alt="Galben"  class="thumb-image"> </a> <div class="caption text-center"><a href="/fotografii/b039ee55-117b-4392-9c0b-7360418e60ec">Galben</a></div></div>
+<div class="thumb-wrap withripple guest tr-all-500ms-children" rel="gallery-wrap" data-gallerytype="gallery" data-uid="014d4233-d5d1-403a-a5b1-6fced2b845fc" data-author="Mihai Petre" data-author-url="/profil/mihai/" data-year="2025"> <div class="thumb-controls"><button class="fa fa-check-circle fa-2x check-full"></button><button class="fa fa-circle-thin fa-2x check-hollow"></button><i class="material-icons button add-to-gallery">&#xE39D;</i><button class="fa fa-heart fa-2x check-fav"></button><button class="fa fa-heart-o fa-2x check-fav-o"></button></div><a href="/img/photos/s1920/014d4233-d5d1-403a-a5b1-6fced2b845fc.jpg"  class="image-link" data-size="2160x1440"><div class="top-shadow"></div><img src="/img/photos/s480/014d4233-d5d1-403a-a5b1-6fced2b845fc.jpg" alt="România în Lumină - Meeting susținere Nicușor Dan"  class="thumb-image"> </a> <div class="caption text-center"><a href="/fotografii/014d4233-d5d1-403a-a5b1-6fced2b845fc">România în Lumină - Meeting susținere Nicușor Dan</a></div></div>
+<div class="thumb-wrap withripple guest tr-all-500ms-children" rel="gallery-wrap" data-gallerytype="gallery" data-uid="637d7d06-d041-437d-b2a5-ca7ce4ab4ca2" data-author="Mihai Petre" data-author-url="/profil/mihai/" data-year="2025"> <div class="thumb-controls"><button class="fa fa-check-circle fa-2x check-full"></button><button class="fa fa-circle-thin fa-2x check-hollow"></button><i class="material-icons button add-to-gallery">&#xE39D;</i><button class="fa fa-heart fa-2x check-fav"></button><button class="fa fa-heart-o fa-2x check-fav-o"></button></div><a href="/img/photos/s1920/637d7d06-d041-437d-b2a5-ca7ce4ab4ca2.jpg"  class="image-link" data-size="2160x1440"><div class="top-shadow"></div><img src="/img/photos/s480/637d7d06-d041-437d-b2a5-ca7ce4ab4ca2.jpg" alt="România în Lumină - Meeting susținere Nicușor Dan"  class="thumb-image"> </a> <div class="caption text-center"><a href="/fotografii/637d7d06-d041-437d-b2a5-ca7ce4ab4ca2">România în Lumină - Meeting susținere Nicușor Dan</a></div></div>
+<div class="thumb-wrap withripple guest tr-all-500ms-children" rel="gallery-wrap" data-gallerytype="gallery" data-uid="ba7ad02d-c479-4b8c-b944-5d048150520e" data-author="Mihai Petre" data-author-url="/profil/mihai/" data-year="2025"> <div class="thumb-controls"><button class="fa fa-check-circle fa-2x check-full"></button><button class="fa fa-circle-thin fa-2x check-hollow"></button><i class="material-icons button add-to-gallery">&#xE39D;</i><button class="fa fa-heart fa-2x check-fav"></button><button class="fa fa-heart-o fa-2x check-fav-o"></button></div><a href="/img/photos/s1920/ba7ad02d-c479-4b8c-b944-5d048150520e.jpg"  class="image-link" data-size="2160x1440"><div class="top-shadow"></div><img src="/img/photos/s480/ba7ad02d-c479-4b8c-b944-5d048150520e.jpg" alt="România în Lumină - Meeting susținere Nicușor Dan"  class="thumb-image"> </a> <div class="caption text-center"><a href="/fotografii/ba7ad02d-c479-4b8c-b944-5d048150520e">România în Lumină - Meeting susținere Nicușor Dan</a></div></div>
+<div class="thumb-wrap withripple guest tr-all-500ms-children" rel="gallery-wrap" data-gallerytype="gallery" data-uid="201ebdce-86cd-41ef-8982-da2b5edeb8f6" data-author="Mihai Petre" data-author-url="/profil/mihai/" data-year="2025"> <div class="thumb-controls"><button class="fa fa-check-circle fa-2x check-full"></button><button class="fa fa-circle-thin fa-2x check-hollow"></button><i class="material-icons button add-to-gallery">&#xE39D;</i><button class="fa fa-heart fa-2x check-fav"></button><button class="fa fa-heart-o fa-2x check-fav-o"></button></div><a href="/img/photos/s1920/201ebdce-86cd-41ef-8982-da2b5edeb8f6.jpg"  class="image-link" data-size="2160x1440"><div class="top-shadow"></div><img src="/img/photos/s480/201ebdce-86cd-41ef-8982-da2b5edeb8f6.jpg" alt="România în Lumină - Meeting susținere Nicușor Dan"  class="thumb-image"> </a> <div class="caption text-center"><a href="/fotografii/201ebdce-86cd-41ef-8982-da2b5edeb8f6">România în Lumină - Meeting susținere Nicușor Dan</a></div></div>
+<div class="thumb-wrap withripple guest tr-all-500ms-children" rel="gallery-wrap" data-gallerytype="gallery" data-uid="a0a74173-e1d8-4a63-a419-5f72cb1d879a" data-author="Mihai Petre" data-author-url="/profil/mihai/" data-year="2025"> <div class="thumb-controls"><button class="fa fa-check-circle fa-2x check-full"></button><button class="fa fa-circle-thin fa-2x check-hollow"></button><i class="material-icons button add-to-gallery">&#xE39D;</i><button class="fa fa-heart fa-2x check-fav"></button><button class="fa fa-heart-o fa-2x check-fav-o"></button></div><a href="/img/photos/s1920/a0a74173-e1d8-4a63-a419-5f72cb1d879a.jpg"  class="image-link" data-size="2560x1440"><div class="top-shadow"></div><img src="/img/photos/s480/a0a74173-e1d8-4a63-a419-5f72cb1d879a.jpg" alt="România în Lumină - Meeting susținere Nicușor Dan"  class="thumb-image"> </a> <div class="caption text-center"><a href="/fotografii/a0a74173-e1d8-4a63-a419-5f72cb1d879a">România în Lumină - Meeting susținere Nicușor Dan</a></div></div>
+<div class="thumb-wrap withripple guest tr-all-500ms-children" rel="gallery-wrap" data-gallerytype="gallery" data-uid="af50f40c-1345-400e-a2af-3e63ddf348f9" data-author="Mihai Petre" data-author-url="/profil/mihai/" data-year="2025"> <div class="thumb-controls"><button class="fa fa-check-circle fa-2x check-full"></button><button class="fa fa-circle-thin fa-2x check-hollow"></button><i class="material-icons button add-to-gallery">&#xE39D;</i><button class="fa fa-heart fa-2x check-fav"></button><button class="fa fa-heart-o fa-2x check-fav-o"></button></div><a href="/img/photos/s1920/af50f40c-1345-400e-a2af-3e63ddf348f9.jpg"  class="image-link" data-size="2160x1440"><div class="top-shadow"></div><img src="/img/photos/s480/af50f40c-1345-400e-a2af-3e63ddf348f9.jpg" alt="România în Lumină - Meeting susținere Nicușor Dan"  class="thumb-image"> </a> <div class="caption text-center"><a href="/fotografii/af50f40c-1345-400e-a2af-3e63ddf348f9">România în Lumină - Meeting susținere Nicușor Dan</a></div></div>
+<div class="thumb-wrap withripple guest tr-all-500ms-children" rel="gallery-wrap" data-gallerytype="gallery" data-uid="3020f0fc-8709-412d-8e32-c2e4e116afd5" data-author="Mihai Petre" data-author-url="/profil/mihai/" data-year="2025"> <div class="thumb-controls"><button class="fa fa-check-circle fa-2x check-full"></button><button class="fa fa-circle-thin fa-2x check-hollow"></button><i class="material-icons button add-to-gallery">&#xE39D;</i><button class="fa fa-heart fa-2x check-fav"></button><button class="fa fa-heart-o fa-2x check-fav-o"></button></div><a href="/img/photos/s1920/3020f0fc-8709-412d-8e32-c2e4e116afd5.jpg"  class="image-link" data-size="2160x1440"><div class="top-shadow"></div><img src="/img/photos/s480/3020f0fc-8709-412d-8e32-c2e4e116afd5.jpg" alt="România în Lumină - Meeting susținere Nicușor Dan"  class="thumb-image"> </a> <div class="caption text-center"><a href="/fotografii/3020f0fc-8709-412d-8e32-c2e4e116afd5">România în Lumină - Meeting susținere Nicușor Dan</a></div></div>
+<div class="thumb-wrap withripple guest tr-all-500ms-children" rel="gallery-wrap" data-gallerytype="gallery" data-uid="fd3cfa0a-5d85-42a6-88ff-986b4ee6e833" data-author="Mihai Petre" data-author-url="/profil/mihai/" data-year="2025"> <div class="thumb-controls"><button class="fa fa-check-circle fa-2x check-full"></button><button class="fa fa-circle-thin fa-2x check-hollow"></button><i class="material-icons button add-to-gallery">&#xE39D;</i><button class="fa fa-heart fa-2x check-fav"></button><button class="fa fa-heart-o fa-2x check-fav-o"></button></div><a href="/img/photos/s1920/fd3cfa0a-5d85-42a6-88ff-986b4ee6e833.jpg"  class="image-link" data-size="2160x1440"><div class="top-shadow"></div><img src="/img/photos/s480/fd3cfa0a-5d85-42a6-88ff-986b4ee6e833.jpg" alt="România în Lumină - Meeting susținere Nicușor Dan"  class="thumb-image"> </a> <div class="caption text-center"><a href="/fotografii/fd3cfa0a-5d85-42a6-88ff-986b4ee6e833">România în Lumină - Meeting susținere Nicușor Dan</a></div></div>
+<div class="thumb-wrap withripple guest tr-all-500ms-children" rel="gallery-wrap" data-gallerytype="gallery" data-uid="d70a8f05-54b8-4a6e-9261-9384e35edb80" data-author="Mihai Petre" data-author-url="/profil/mihai/" data-year="2025"> <div class="thumb-controls"><button class="fa fa-check-circle fa-2x check-full"></button><button class="fa fa-circle-thin fa-2x check-hollow"></button><i class="material-icons button add-to-gallery">&#xE39D;</i><button class="fa fa-heart fa-2x check-fav"></button><button class="fa fa-heart-o fa-2x check-fav-o"></button></div><a href="/img/photos/s1920/d70a8f05-54b8-4a6e-9261-9384e35edb80.jpg"  class="image-link" data-size="2160x1440"><div class="top-shadow"></div><img src="/img/photos/s480/d70a8f05-54b8-4a6e-9261-9384e35edb80.jpg" alt="România în Lumină - Meeting susținere Nicușor Dan"  class="thumb-image"> </a> <div class="caption text-center"><a href="/fotografii/d70a8f05-54b8-4a6e-9261-9384e35edb80">România în Lumină - Meeting susținere Nicușor Dan</a></div></div>
+<div class="thumb-wrap withripple guest tr-all-500ms-children" rel="gallery-wrap" data-gallerytype="gallery" data-uid="c78bf3a7-35cc-43ca-9da6-bf857d3aff2f" data-author="Mihai Petre" data-author-url="/profil/mihai/" data-year="2025"> <div class="thumb-controls"><button class="fa fa-check-circle fa-2x check-full"></button><button class="fa fa-circle-thin fa-2x check-hollow"></button><i class="material-icons button add-to-gallery">&#xE39D;</i><button class="fa fa-heart fa-2x check-fav"></button><button class="fa fa-heart-o fa-2x check-fav-o"></button></div><a href="/img/photos/s1920/c78bf3a7-35cc-43ca-9da6-bf857d3aff2f.jpg"  class="image-link" data-size="2160x1440"><div class="top-shadow"></div><img src="/img/photos/s480/c78bf3a7-35cc-43ca-9da6-bf857d3aff2f.jpg" alt="România în Lumină - Meeting susținere Nicușor Dan"  class="thumb-image"> </a> <div class="caption text-center"><a href="/fotografii/c78bf3a7-35cc-43ca-9da6-bf857d3aff2f">România în Lumină - Meeting susținere Nicușor Dan</a></div></div>
+	</div>
+	<div class="clearfix"></div>
+
+	<div class="row">
+		<div class="col-xs-12 text-center">
+			<a href="/fotografii" class="btn btn-hollow tr-all-500ms mb0">Mai multe...</a>		</div>
+	</div>
+	<div class="clearfix"></div>
+</section>
+
+
+		</div>
+	</div>
+	<div class="clearfix"></div>
+<footer id="footer" class=" tr-all-500ms-children text-center">
+	<div class="row m0">
+		<div class="footer-content col-xs-12">
+			<a href="http://arcub.ro/" target="_blank" rel="nofollow"><img src="/img/partners/logo-arcub.png" alt="Arcub" border="0" class="img-responsive footer-partner-lg inline-block pl05e mb5"/></a><a href="http://pmb.ro/" target="_blank" rel="nofollow"><img src="/img/partners/logo-pmb.png" alt="Primaria Municipiului Bucuresti" border="0" class="img-responsive footer-partner-lg inline-block pr05e mb5"/></a><a href="http://www.digitalit.ro/" target="_blank" rel="nofollow"><img src="/img/partners/logo-digitalit.png" alt="Digital IT" border="0" class="img-responsive footer-partner-lg inline-block pl05e pr05e mb5"/></a><a href="http://www.muzeulbucurestiului.ro/" target="_blank" rel="nofollow"><img src="/img/partners/logo-muzeul-bucurestiului.png" alt="Muzeul Municipiului Bucuresti" border="0" class="img-responsive footer-partner-lg inline-block pl05e pr05e mb5"/></a><a href="http://www.arhivelenationale.ro/" target="_blank" rel="nofollow"><img src="/img/partners/logo-anr.png" alt="Arhivele Nationale ale Romaniei" border="0" class="img-responsive footer-partner-lg inline-block pl05e pr05e mb5"/></a><a href="http://www.f64.ro/" target="_blank" rel="nofollow"><img src="/img/partners/logo-f64.png" alt="F64" border="0" class="img-responsive footer-partner-lg inline-block pl05e pr05e mb5"/></a>		</div>
+		<div class="clearfix"></div>
+		<div class="footer-content col-xs-12">
+			<a href="/despre-noi" class="footer-link pl05e pr05e">Despre noi</a>|<a href="/parteneri" class="footer-link pl05e pr05e">Parteneri</a>|<a href="/politica-de-confidentialitate" class="footer-link pl05e pr05e">Politica de Confidențialitate</a>|<a href="/termeni-si-conditii" class="footer-link pl05e pr05e">Termeni și condiții</a>|<a href="/tutorial" class="footer-link pl05e pr05e">Tutorial</a>		</div>
+	</div>
+	<div class="clearfix"></div>
+	<div class="row">
+		<div class="footer-content col-md-12 text-center">Copyright <i class="fa fa-copyright"></i> 2016-2025 Bucurestiul meu drag</div>
+	</div>
+
+</footer>
+<div class="clearfix"></div>
+	
+	<!-- Root element of PhotoSwipe. Must have class pswp. -->
+	<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+		<!-- Background of PhotoSwipe.
+			 It's a separate element as animating opacity is faster than rgba(). -->
+		<div class="pswp__bg"></div>
+
+		<!-- Slides wrapper with overflow:hidden. -->
+		<div class="pswp__scroll-wrap">
+
+			<!-- Container that holds slides.
+				PhotoSwipe keeps only 3 of them in the DOM to save memory.
+				Don't modify these 3 pswp__item elements, data is added later on. -->
+			<div class="pswp__container">
+				<div class="pswp__item"></div>
+				<div class="pswp__item"></div>
+				<div class="pswp__item"></div>
+			</div>
+
+			<!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+			<div class="pswp__ui pswp__ui--hidden">
+
+				<div class="pswp__top-bar">
+
+					<!--  Controls are self-explanatory. Order can be changed. -->
+
+					<div class="pswp__counter"></div>
+
+					<button class="pswp__button pswp__button--close" title="Inchide (Esc)" data-toggle="tooltip" data-placement="bottom"></button>
+
+<!--					<button class="pswp__button pswp__button--share" title="Share" data-toggle="tooltip" data-placement="bottom"></button>-->
+
+					<button class="pswp__button pswp__button--fs" title="Fullscreen" data-toggle="tooltip" data-placement="bottom"></button>
+
+					<button class="pswp__button pswp__button--zoom" title="Zoom in/out" data-toggle="tooltip" data-placement="bottom"></button>
+
+					<button class="pswp__button pswp__button--fav no-bg-img" title="Adauga la Favorite" data-toggle="tooltip" data-placement="bottom">
+						<i class="fa fa-heart-o"></i>
+					</button>
+					<button class="pswp__button pswp__button--unfav no-bg-img" title="Sterge de la Favorite" data-toggle="tooltip" data-placement="bottom" style="display: none;">
+						<i class="fa fa-heart"></i>
+					</button>
+
+					<button class="pswp__button pswp__button--gallery no-bg-img" title="Adauga in Galerie" data-toggle="tooltip" data-placement="bottom">
+						<i class="material-icons button add-to-gallery">&#xE39D;</i>
+					</button>
+
+					<div class="pswp__button pswp__button--open no-bg-img" title="Deschide pagina fotografiei" data-toggle="tooltip" data-placement="bottom">
+						<a href="#" target="_blank"><i class="ion ion-android-open"></i></a>
+					</div>
+
+					<!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+					<!-- element will get class pswp__preloader--active when preloader is running -->
+					<div class="pswp__preloader">
+						<div class="pswp__preloader__icn">
+							<div class="pswp__preloader__cut">
+								<div class="pswp__preloader__donut"></div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+					<div class="pswp__share-tooltip"></div>
+				</div>
+
+				<button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+				</button>
+
+				<button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+				</button>
+
+				<div class="pswp__caption">
+					<div class="pswp__caption__center"></div>
+				</div>
+
+			</div>
+
+		</div>
+
+	</div>
+
+	<div class="modal fade gallery-add-foto-modal dark-modal" tabindex="-1" role="dialog" aria-labelledby="galleryAddFotoModal" aria-hidden="true">
+		<div class="modal-dialog modal-md">
+			<div class="modal-content">
+
+			</div>
+		</div>
+	</div>
+
+	<div class="modal fade article-foto-modal dark-modal" id="articleFotoModal" tabindex="-1" role="dialog" aria-labelledby="articleFotoModal" aria-hidden="true">
+		<div class="modal-dialog modal-md" data-dismiss="modal">
+			<div class="modal-content">
+
+<!--				<button type="button" class="close" data-dismiss="modal" title="Inchide (Esc)" data-toggle="tooltip" data-placement="left"></button>-->
+				<img src="" class="imagepreview" style="max-width: 100%;"><br>
+				<span class="imagepreview_caption"></span>
+			</div>
+		</div>
+	</div>
+
+	<script>window.jQuery || document.write('<script src="/js/jquery-2.2.4.min.js"><\/script>')</script>
+	<script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+	<script>
+		var isMobile = false;
+		if ($('body').hasClass('mobile')) {
+			isMobile = true;
+		}
+	</script>
+	
+	<script type="text/javascript" src="/js/photoswipe.min.js"></script>
+	<script type="text/javascript" src="/js/photoswipe-ui-default.min.js"></script>
+	
+
+	<script type="text/javascript" src="/js/ripples.min.js"></script>
+	<script type="text/javascript" src="/js/material.min.js"></script>
+	<script type="text/javascript" src="/js/underscore-min.js"></script>
+	<script type="text/javascript" src="/js/sweet-alert.min.js"></script>
+	<script type="text/javascript" src="/js/jquery.justifiedGallery.min.js"></script>
+	<script type="text/javascript" src="/js/jquery.nicescroll.min.js"></script>
+	<script type="text/javascript" src="/js/scripts.js"></script>
+	<script type="text/javascript" src="/js/fingerprint2.min.js"></script>
+	<script>
+		"use strict";
+		var fingerprintOptions = { excludeJsFonts: true, excludeFlashFonts: true };
+		new Fingerprint2(fingerprintOptions).get(function(result, components){
+			try {
+				$.ajax({
+					type: "POST",
+					url: "/fingerprint",
+					data: { fingerprint: result }
+				}).done(function(resp) {});
+			} catch(e) {}
+		});
+	</script>
+</body>
+</html>
