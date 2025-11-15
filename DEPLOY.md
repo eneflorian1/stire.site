@@ -2,7 +2,7 @@
 ## VPS Details
 
 - Domain: `stire.site`
-- IP (SSH_HOST): `64.225.49.128`
+- IP (SSH_HOST): `206.189.10.234`
 - SSH user (SSH_USER): `root`
 - App dir: `/opt/app`
 - Systemd service: `stirix.service`
@@ -17,20 +17,20 @@ Generate a keypair locally and authorize it on the VPS.
 ssh-keygen -t ed25519 -C "github-deploy" -f %USERPROFILE%\.ssh\github_deploy_key -N ""
 
 # Add PUBLIC key to VPS (Git Bash with ssh-copy-id)
-ssh-copy-id -i ~/.ssh/github_deploy_key.pub root@64.225.49.128
+ssh-copy-id -i ~/.ssh/github_deploy_key.pub root@206.189.10.234
 
 # If ssh-copy-id is not available (universal fallback)
-scp %USERPROFILE%\.ssh\github_deploy_key.pub root@64.225.49.128:/root/github_deploy_key.pub
-ssh root@64.225.49.128 "mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat ~/github_deploy_key.pub >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys && rm ~/github_deploy_key.pub"
+scp %USERPROFILE%\.ssh\github_deploy_key.pub root@206.189.10.234:/root/github_deploy_key.pub
+ssh root@6206.189.10.234 "mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat ~/github_deploy_key.pub >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys && rm ~/github_deploy_key.pub"
 
 # Test
-ssh -i %USERPROFILE%\.ssh\github_deploy_key root@64.225.49.128 "echo OK"
+ssh -i %USERPROFILE%\.ssh\github_deploy_key root@206.189.10.234 "echo OK"
 ```
 
 ## 1) Prepare VPS (initial setup + remove old project)
 
 ```bash
-ssh root@64.225.49.128
+ssh root@206.189.10.234
 
 # Backup and remove old project (adjust path if different)
 OLD_DIR="/var/www/stire.site"
@@ -102,7 +102,7 @@ sudo certbot --nginx -d stire.site -d www.stire.site
 
 Add these secrets:
 
-- `SSH_HOST` = `64.225.49.128` (IP-ul serverului VPS)
+- `SSH_HOST` = `206.189.10.234` (IP-ul serverului VPS)
 - `SSH_USER` = `root` (utilizatorul SSH)
 - `SSH_PRIVATE_KEY` = conținutul cheii private de deploy (generată la pasul 0)
 - `PROJECT_DIR` = (opțional) calea către folderul proiectului pe server (ex: `/opt/app` sau `/home/user/stire.site`)
@@ -135,10 +135,10 @@ Unde `<PROJECT_DIR>` este folderul detectat automat sau cel setat în secret-ul 
 
 ```bash
 # Trigger deploy manually
-ssh root@64.225.49.128 'bash /opt/app/deploy.sh'
+ssh root@206.189.10.234 'bash /opt/app/deploy.sh'
 
 # Health check via Nginx
-curl -fsS http://stire.site/health || curl -fsS http://64.225.49.128/health || true
+curl -fsS http://stire.site/health || curl -fsS http://206.189.10.234/health || true
 ```
 
 Notes:
