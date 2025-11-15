@@ -6,6 +6,12 @@ PROJECT_DIR="$(pwd)"
 PROJECT_NAME="$(basename "$PROJECT_DIR")"
 DOMAIN="$PROJECT_NAME"
 
+# Prefer venv without dot if it exists (server/venv), otherwise fallback to server/.venv
+VENV_DIR="server/venv"
+if [ ! -d "$VENV_DIR" ] && [ -d "server/.venv" ]; then
+    VENV_DIR="server/.venv"
+fi
+
 echo "=========================================="
 echo "Stirix Setup Script"
 echo "=========================================="
@@ -24,20 +30,20 @@ fi
 # 1. Python virtual environment setup
 echo ""
 echo "[1/8] Setting up Python virtual environment..."
-if [ ! -d "server/.venv" ]; then
-    python3 -m venv server/.venv
-    echo "✓ Virtual environment created at $PROJECT_DIR/server/.venv"
+if [ ! -d "$VENV_DIR" ]; then
+    python3 -m venv "$VENV_DIR"
+    echo "✓ Virtual environment created at $PROJECT_DIR/$VENV_DIR"
 else
-    echo "✓ Virtual environment already exists at $PROJECT_DIR/server/.venv"
+    echo "✓ Virtual environment already exists at $PROJECT_DIR/$VENV_DIR"
 fi
 
 # Get absolute path to Python and pip in venv
-VENV_PYTHON="$PROJECT_DIR/server/.venv/bin/python"
-VENV_PIP="$PROJECT_DIR/server/.venv/bin/pip"
+VENV_PYTHON="$PROJECT_DIR/$VENV_DIR/bin/python"
+VENV_PIP="$PROJECT_DIR/$VENV_DIR/bin/pip"
 if [ ! -f "$VENV_PYTHON" ]; then
     # Try Windows path
-    VENV_PYTHON="$PROJECT_DIR/server/.venv/Scripts/python.exe"
-    VENV_PIP="$PROJECT_DIR/server/.venv/Scripts/pip.exe"
+    VENV_PYTHON="$PROJECT_DIR/$VENV_DIR/Scripts/python.exe"
+    VENV_PIP="$PROJECT_DIR/$VENV_DIR/Scripts/pip.exe"
 fi
 
 # Verify venv Python exists
@@ -354,7 +360,7 @@ echo "=========================================="
 echo "Domain: $DOMAIN"
 echo "Backend: Running on PM2 (stirix-api)"
 echo "Frontend: Built and served via Nginx"
-echo "Virtual Environment: $PROJECT_DIR/server/.venv"
+echo "Virtual Environment: $PROJECT_DIR/$VENV_DIR"
 echo ""
 echo "PM2 Commands:"
 echo "  pm2 status          - Check status"
@@ -368,7 +374,7 @@ echo "  $SUDO systemctl reload nginx - Reload Nginx"
 echo ""
 echo "Manual Backend (for testing):"
 echo "  cd $PROJECT_DIR/server"
-echo "  .venv/bin/python -m uvicorn app:app --reload --port 8000"
+echo "  ./venv/bin/python -m uvicorn app:app --reload --port 8000"
 echo "  (or: $VENV_PYTHON -m uvicorn app:app --reload --port 8000)"
 echo ""
 echo "Database Info:"
