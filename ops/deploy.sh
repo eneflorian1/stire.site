@@ -60,9 +60,10 @@ fi
 if [ -f "$APP_DIR/ops/nginx/stire.site" ] && command -v nginx >/dev/null 2>&1; then
   echo "Updating Nginx configuration..."
   
-  # Detect domain from project directory name (same as setup.sh)
-  PROJECT_NAME="$(basename "$APP_DIR")"
-  DOMAIN="$PROJECT_NAME"
+  # Domain configuration:
+  # - By default, this project is meant for stire.site
+  # - You can override with DOMAIN_OVERRIDE env if you reuse the deploy script
+  DOMAIN="${DOMAIN_OVERRIDE:-stire.site}"
   
   NGINX_SITES_AVAILABLE="/etc/nginx/sites-available"
   NGINX_SITES_ENABLED="/etc/nginx/sites-enabled"
@@ -73,7 +74,6 @@ if [ -f "$APP_DIR/ops/nginx/stire.site" ] && command -v nginx >/dev/null 2>&1; t
     # Use existing template and replace domain
     sed "s/stire\.site/$DOMAIN/g" "$APP_DIR/ops/nginx/stire.site" > "/tmp/nginx_${DOMAIN}.conf"
     # Also replace www.stire.site with www.$DOMAIN
-    sed -i "s/www\.stire\.site/www.$DOMAIN/g" "/tmp/nginx_${DOMAIN}.conf"
     sed -i "s/www\.stire\.site/www.$DOMAIN/g" "/tmp/nginx_${DOMAIN}.conf"
     # Replace /opt/app with actual project directory
     sed -i "s|/opt/app|$APP_DIR|g" "/tmp/nginx_${DOMAIN}.conf"
@@ -93,6 +93,8 @@ if [ -f "$APP_DIR/ops/nginx/stire.site" ] && command -v nginx >/dev/null 2>&1; t
     
     # Create symlink in sites-enabled
     sudo ln -sf "$NGINX_CONFIG_FILE" "$NGINX_SITES_ENABLED/$DOMAIN"
+    # Disable default site if present
+    sudo rm -f "$NGINX_SITES_ENABLED/default" 2>/dev/null || true
     
     # Test and reload nginx
     if sudo nginx -t 2>/dev/null; then
