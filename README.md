@@ -14,6 +14,6 @@ uvicorn app:app --reload --port 8000
 
 chmod +x setup.sh
 ./setup.sh
-
+ 
  
 source .venv/bin/activate
