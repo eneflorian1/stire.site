@@ -104,7 +104,7 @@ Add these secrets:
 - `SSH_HOST` = `64.225.49.128` (IP-ul serverului VPS)
 - `SSH_USER` = `root` (utilizatorul SSH)
 - `SSH_PRIVATE_KEY` = conținutul cheii private de deploy (generată la pasul 0)
-- `PROJECT_DIR` = (opțional) calea către folderul proiectului pe server (ex: `/opt/app` sau `/home/user/stirix`)
+- `PROJECT_DIR` = (opțional) calea către folderul proiectului pe server (ex: `/opt/app` sau `/home/user/stire.site`)
 
 **Notă:** Dacă `PROJECT_DIR` nu este setat, workflow-ul va detecta automat folderul proiectului căutând `setup.sh` sau `ecosystem.config.js` în locații comune (`/opt/app`, `/home/user/stirix`, etc.).
 
