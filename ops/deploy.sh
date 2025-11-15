@@ -40,6 +40,37 @@ git clean -fd || true
 # Ensure we are on a local branch tracking origin/main, not detached HEAD
 git checkout -B main origin/main
 
+# Python virtual environment + backend dependencies
+if command -v python3 >/dev/null 2>&1; then
+  echo "Setting up Python virtual environment..."
+  VENV_DIR="$APP_DIR/.venv"
+  if [ ! -d "$VENV_DIR" ]; then
+    echo "Creating venv at $VENV_DIR"
+    python3 -m venv "$VENV_DIR" || echo "⚠ Failed to create venv (is python3-venv installed?)"
+  else
+    echo "Using existing venv at $VENV_DIR"
+  fi
+
+  VENV_PYTHON="$VENV_DIR/bin/python"
+  VENV_PIP="$VENV_DIR/bin/pip"
+
+  if [ -x "$VENV_PIP" ]; then
+    echo "Upgrading pip in venv..."
+    "$VENV_PIP" install --upgrade pip
+
+    if [ -f "$APP_DIR/server/requirements.txt" ]; then
+      echo "Installing backend requirements..."
+      "$VENV_PIP" install -r "$APP_DIR/server/requirements.txt"
+    else
+      echo "⚠ server/requirements.txt not found, skipping backend deps"
+    fi
+  else
+    echo "⚠ venv pip not found at $VENV_PIP, skipping backend deps"
+  fi
+else
+  echo "⚠ python3 not found; skipping backend virtualenv/dependencies"
+fi
+
 # Docker Compose (optional)
 if [ -f "docker-compose.yml" ] || [ -f "compose.yml" ]; then
   docker compose pull

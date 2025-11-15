@@ -59,12 +59,15 @@ sudo install -m 0755 ops/deploy.sh /opt/app/deploy.sh
 
 Script behavior: `git fetch/reset/pull`, then optionally Docker Compose, then restarts `stirix.service` if present.
 
-## 3) Python venv + dependencies
+## 3) Python venv + dependencies (automatizat prin deploy.sh)
+
+Scriptul `ops/deploy.sh` creează automat venv-ul (în `/opt/app/.venv`) și instalează dependențele backend la fiecare deploy.
+
+Necesită doar ca pe VPS să fie instalate pachetele de bază:
 
 ```bash
-python3 -m venv /opt/app/.venv
-/opt/app/.venv/bin/pip install --upgrade pip
-/opt/app/.venv/bin/pip install -r /opt/app/server/requirements.txt
+apt update
+apt install -y python3 python3-venv python3-pip
 ```
 
 ## 4) Systemd service (FastAPI via Uvicorn)
