@@ -40,6 +40,32 @@ git clean -fd || true
 # Ensure we are on a local branch tracking origin/main, not detached HEAD
 git checkout -B main origin/main
 
+# Python virtual environment + backend dependencies
+BACKEND_DIR="$APP_DIR/server"
+VENV_DIR="$BACKEND_DIR/venv"
+
+if command -v python3 >/dev/null 2>&1; then
+  echo "Ensuring Python virtual environment exists at: $VENV_DIR"
+  if [ ! -d "$VENV_DIR" ]; then
+    python3 -m venv "$VENV_DIR"
+    echo "✓ Created virtual environment at $VENV_DIR"
+  else
+    echo "✓ Virtual environment already exists at $VENV_DIR"
+  fi
+
+  VENV_PIP="$VENV_DIR/bin/pip"
+  if [ -x "$VENV_PIP" ] && [ -f "$BACKEND_DIR/requirements.txt" ]; then
+    echo "Installing backend requirements..."
+    "$VENV_PIP" install --upgrade pip
+    "$VENV_PIP" install -r "$BACKEND_DIR/requirements.txt"
+    echo "✓ Backend dependencies installed/updated"
+  else
+    echo "⚠ Could not find pip in venv or requirements.txt in $BACKEND_DIR"
+  fi
+else
+  echo "⚠ python3 not found; skipping backend virtualenv/deps setup"
+fi
+
 # Docker Compose (optional)
 if [ -f "docker-compose.yml" ] || [ -f "compose.yml" ]; then
   docker compose pull
@@ -107,10 +133,25 @@ if [ -f "$APP_DIR/ops/nginx/stire.site" ] && command -v nginx >/dev/null 2>&1; t
   fi
 fi
 
-# systemd service (rename to your service name if different)
-if systemctl list-units --type=service | grep -q "stirix.service"; then
+# systemd service - ensure API is running via systemd
+SERVICE_NAME="${SERVICE_NAME_OVERRIDE:-stire.site}"
+SERVICE_UNIT="/etc/systemd/system/${SERVICE_NAME}.service"
+
+if [ -f "$APP_DIR/ops/systemd/stirix.service" ] && command -v systemctl >/dev/null 2>&1; then
+  echo "Configuring systemd service: $SERVICE_NAME"
+  TMP_SERVICE="/tmp/${SERVICE_NAME}.service"
+  # Use service template and replace /opt/app with actual APP_DIR
+  sed "s|/opt/app|$APP_DIR|g" "$APP_DIR/ops/systemd/stirix.service" > "$TMP_SERVICE"
+  # Default to running as root (adjust in template if you change user)
+  sed -i "s|^User=YOUR_USER|User=root|" "$TMP_SERVICE"
+
+  sudo cp "$TMP_SERVICE" "$SERVICE_UNIT"
+  rm -f "$TMP_SERVICE"
+
   sudo systemctl daemon-reload
-  sudo systemctl restart stirix.service
+  sudo systemctl enable "$SERVICE_NAME"
+  sudo systemctl restart "$SERVICE_NAME"
+  echo "✓ systemd service $SERVICE_NAME restarted"
 fi
 # PM2 (optional) - only if ecosystem.config.js exists
 if command -v pm2 >/dev/null 2>&1; then
