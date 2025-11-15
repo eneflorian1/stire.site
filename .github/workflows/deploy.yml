@@ -31,6 +31,7 @@ jobs:
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
+          CERTBOT_EMAIL: ${{ secrets.CERTBOT_EMAIL }}
         run: |
           # Detect project directory on server (same logic as setup.sh)
           # If PROJECT_DIR secret is set, use it; otherwise auto-detect

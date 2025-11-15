@@ -130,6 +130,24 @@ if [ -f "$APP_DIR/ops/nginx/stire.site" ] && command -v nginx >/dev/null 2>&1; t
       echo "⚠ Nginx configuration test failed, not reloading"
       echo "  Check with: sudo nginx -t"
     fi
+
+    # Automatic SSL with Certbot (optional)
+    # Requires:
+    #  - DNS already pointing $DOMAIN and www.$DOMAIN to this server
+    #  - certbot installed
+    #  - CERTBOT_EMAIL environment variable set (from GitHub Actions secret)
+    if [ -n "${CERTBOT_EMAIL:-}" ] && command -v certbot >/dev/null 2>&1; then
+      if [ ! -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
+        echo "No SSL certificate found for $DOMAIN, attempting to obtain one with Certbot..."
+        sudo certbot --nginx -d "$DOMAIN" -d "www.$DOMAIN" \
+          --non-interactive --agree-tos --email "$CERTBOT_EMAIL" --redirect || \
+          echo "⚠ Certbot failed; site will continue to run on HTTP only"
+      else
+        echo "✓ SSL certificate already exists for $DOMAIN (Certbot step skipped)"
+      fi
+    else
+      echo "Certbot auto-SSL not run (missing CERTBOT_EMAIL or certbot command)."
+    fi
   fi
 fi
 
