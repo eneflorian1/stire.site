@@ -5,10 +5,22 @@ server {
 
     client_max_body_size 20m;
 
-    # Sitemap must be accessible on HTTP (before redirect)
+    # Sitemap index must be accessible on HTTP (before redirect)
     # This allows sitemap.xml to work on HTTP even when HTTPS redirect is active
     location = /sitemap.xml {
         proxy_pass http://127.0.0.1:8000/sitemap.xml;
+        proxy_http_version 1.1;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_set_header   X-Forwarded-Host $host;
+        add_header Content-Type application/xml;
+    }
+
+    # Allow child sitemap files on HTTP as well (optional, but safe)
+    location ~ ^/sitemap-(news|articles-latest|articles-[0-9]+|categories|images)\.xml$ {
+        proxy_pass http://127.0.0.1:8000$request_uri;
         proxy_http_version 1.1;
         proxy_set_header   Host $host;
         proxy_set_header   X-Real-IP $remote_addr;
@@ -46,9 +58,22 @@ server {
     root /opt/app/frontend/dist;
     index index.html;
 
-    # Sitemap for Google Search Console (MUST be before location / to avoid SPA fallback)
+    # Sitemap index for Google Search Console (MUST be before location / to avoid SPA fallback)
     location = /sitemap.xml {
         proxy_pass http://127.0.0.1:8000/sitemap.xml;
+        proxy_http_version 1.1;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_set_header   X-Forwarded-Host $host;
+        add_header Content-Type application/xml;
+    }
+
+    # All sitemap variants (news, latest, paged archives, categories, images)
+    # These are generated dynamically by the backend at /sitemap-*.xml
+    location ~ ^/sitemap-(news|articles-latest|articles-[0-9]+|categories|images)\.xml$ {
+        proxy_pass http://127.0.0.1:8000$request_uri;
         proxy_http_version 1.1;
         proxy_set_header   Host $host;
         proxy_set_header   X-Real-IP $remote_addr;

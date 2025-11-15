@@ -1,4 +1,4 @@
-# stirix
+# stire
 
 A new Flutter project.
 

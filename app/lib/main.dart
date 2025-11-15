@@ -709,7 +709,7 @@ class _CreateArticlePageState extends State<CreateArticlePage> {
   final TextEditingController _titleCtrl = TextEditingController();
   final TextEditingController _summaryCtrl = TextEditingController();
   final TextEditingController _imageUrlCtrl = TextEditingController(text: 'https://picsum.photos/800/450');
-  final TextEditingController _sourceCtrl = TextEditingController(text: 'Stirix');
+  final TextEditingController _sourceCtrl = TextEditingController(text: 'Stire');
   String? _selectedCategory;
   bool _submitting = false;
 

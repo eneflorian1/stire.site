@@ -5,7 +5,7 @@
 - IP (SSH_HOST): `206.189.10.234`
 - SSH user (SSH_USER): `root`
 - App dir: `/opt/app`
-- Systemd service: `stirix.service`
+- Systemd service: `stire.service`
 - Backend bind: `127.0.0.1:8000` (proxied by Nginx)
 
 ## 0) Create SSH deploy key (Windows)
@@ -57,7 +57,7 @@ git clone git@github.com:ORG/REPO.git .   # or use https:// if preferred
 sudo install -m 0755 ops/deploy.sh /opt/app/deploy.sh
 ```
 
-Script behavior: `git fetch/reset/pull`, then optionally Docker Compose, then restarts `stirix.service` if present.
+Script behavior: `git fetch/reset/pull`, then optionally Docker Compose, then restarts `stire.service` if present.
 
 ## 3) Python venv + dependencies
 
@@ -71,7 +71,7 @@ python3 -m venv /opt/app/server/venv
 ## 4) Systemd service (FastAPI via Uvicorn)
 
 ```bash
-sudo cp ops/systemd/stirix.service /etc/systemd/system/stire.site.service
+sudo cp ops/systemd/stire.service /etc/systemd/system/stire.site.service
 
 # Editează user-ul din service (YOUR_USER) în root sau user-ul tău
 sudo sed -i "s|^User=YOUR_USER|User=root|" /etc/systemd/system/stire.site.service
@@ -108,7 +108,7 @@ Add these secrets:
 - `PROJECT_DIR` = (opțional) calea către folderul proiectului pe server (ex: `/opt/app` sau `/home/user/stire.site`)
 - `CERTBOT_EMAIL` = `eneflorian@mail.com`
 
-**Notă:** Dacă `PROJECT_DIR` nu este setat, workflow-ul va detecta automat folderul proiectului căutând `setup.sh` sau `ecosystem.config.js` în locații comune (`/opt/app`, `/home/user/stirix`, etc.).
+**Notă:** Dacă `PROJECT_DIR` nu este setat, workflow-ul va detecta automat folderul proiectului căutând `setup.sh` sau `ecosystem.config.js` în locații comune (`/opt/app`, `/home/user/stire`, etc.).
 
 To view the private key (Windows):
 
@@ -145,5 +145,5 @@ curl -fsS http://stire.site/health || curl -fsS http://206.189.10.234/health || 
 Notes:
 
 - Do not store VPS passwords in the repository or in GitHub secrets. Use SSH keys.
-- If you rename the service from `stirix`, update both `/etc/systemd/system/stirix.service` and `ops/deploy.sh`.
+- If you rename the service from `stire`, update both `/etc/systemd/system/stire.service` and `ops/deploy.sh`.
 - Backend listens only on localhost; Nginx proxies external traffic.

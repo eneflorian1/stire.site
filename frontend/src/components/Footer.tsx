@@ -9,7 +9,7 @@ export default function Footer() {
       background: '#fff'
     }}>
       <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-        <div style={{ color: '#6b7280' }}>© {new Date().getFullYear()} Stirix</div>
+        <div style={{ color: '#6b7280' }}>© {new Date().getFullYear()} Stire</div>
         <nav style={{ display: 'flex', gap: 16 }}>
           <Link to="/" style={{ color: '#374151', textDecoration: 'none' }}>Acasă</Link>
           <Link to="/categorii" style={{ color: '#374151', textDecoration: 'none' }}>Categorii</Link>

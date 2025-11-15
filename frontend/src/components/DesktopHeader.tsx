@@ -22,7 +22,7 @@ export default function DesktopHeader() {
   return (
     <header className="desktop-header" role="banner">
       <div className="desktop-header__inner">
-        <Link className="desktop-header__brand" to="/">Stirix Admin</Link>
+        <Link className="desktop-header__brand" to="/">Stire</Link>
         <div className="desktop-header__search" role="search">
           <input
             className="search-input"

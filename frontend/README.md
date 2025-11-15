@@ -1,4 +1,4 @@
-Stirix Frontend (React + Vite + TypeScript)
+Stire Frontend (React + Vite + TypeScript)
 
 Acest frontend este destinat pentru desktop/web. Pentru mobile (aplicație și browser), folosiți build-ul Flutter din `app/`.
 

@@ -252,7 +252,7 @@ class _AdminEditPageState extends State<_AdminEditPage> {
     _titleCtrl = TextEditingController(text: widget.existing?.title ?? '');
     _summaryCtrl = TextEditingController(text: widget.existing?.summary ?? '');
     _imageUrlCtrl = TextEditingController(text: widget.existing?.imageUrl ?? 'https://picsum.photos/800/450');
-    _sourceCtrl = TextEditingController(text: widget.existing?.source ?? 'Stirix');
+    _sourceCtrl = TextEditingController(text: widget.existing?.source ?? 'Stire');
     _publishedCtrl = TextEditingController(text: widget.existing?.publishedAt?.toUtc().toIso8601String() ?? '');
     _category = widget.existing?.category ?? (widget.categories.isNotEmpty ? widget.categories.first : 'Tech');
   }

@@ -24,7 +24,7 @@ from routers_sitemap import router as sitemap_router
 from routers_topics import router as topics_router
 
 
-app = FastAPI(title="Stirix API", version="0.1.0")
+app = FastAPI(title="Stire API", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,

@@ -38,8 +38,8 @@ Variabile de mediu suportate:
 ## Docker (opțional)
 ```bash
 # din directorul server/
-docker build -t stirix-api .
-docker run -p 8000:8000 --env API_KEY=devkey --name stirix-api stirix-api
+docker build -t stire-api .
+docker run -p 8000:8000 --env API_KEY=devkey --name stire-api stire-api
 ```
 
 ## Integrare Flutter (scurt)

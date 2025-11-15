@@ -8,7 +8,7 @@ export default function CreateArticle() {
   const [title, setTitle] = useState('');
   const [summary, setSummary] = useState('');
   const [image, setImage] = useState('https://picsum.photos/800/450');
-  const [source, setSource] = useState('Stirix');
+  const [source, setSource] = useState('Stire');
   const [category, setCategory] = useState<string>('Tech');
   const [cats, setCats] = useState<string[]>(['Tech']);
   const [submitting, setSubmitting] = useState(false);

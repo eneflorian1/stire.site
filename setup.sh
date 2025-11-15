@@ -13,7 +13,7 @@ if [ ! -d "$VENV_DIR" ] && [ -d "server/.venv" ]; then
 fi
 
 echo "=========================================="
-echo "Stirix Setup Script"
+echo "Stire Setup Script"
 echo "=========================================="
 echo "Project directory: $PROJECT_DIR"
 echo "Detected domain: $DOMAIN"
@@ -178,7 +178,7 @@ cat > "$PROJECT_DIR/ecosystem.config.js" <<EOF
 module.exports = {
   apps: [
     {
-      name: 'stirix-api',
+      name: 'stire-api',
       script: '$VENV_PYTHON',
       args: '-m uvicorn app:app --host 127.0.0.1 --port 8000 --workers 2',
       cwd: '$PROJECT_DIR/server',
@@ -336,19 +336,19 @@ if [ ! -f "$VENV_PYTHON" ]; then
 fi
 
 # Stop existing PM2 processes if any
-pm2 delete stirix-api 2>/dev/null || true
+pm2 delete stire-api 2>/dev/null || true
 
 # Start the application
-echo "Starting stirix-api with PM2..."
+echo "Starting stire-api with PM2..."
 pm2 start "$PROJECT_DIR/ecosystem.config.js"
 
 # Wait a moment and verify it started
 sleep 2
-if pm2 list | grep -q "stirix-api.*online"; then
+if pm2 list | grep -q "stire-api.*online"; then
     echo "✓ Application started successfully with PM2"
 else
     echo "⚠ Warning: Application may not be running correctly"
-    echo "  Check logs with: pm2 logs stirix-api"
+    echo "  Check logs with: pm2 logs stire-api"
 fi
 
 pm2 save
@@ -358,15 +358,15 @@ echo "=========================================="
 echo "Setup Complete!"
 echo "=========================================="
 echo "Domain: $DOMAIN"
-echo "Backend: Running on PM2 (stirix-api)"
+echo "Backend: Running on PM2 (stire-api)"
 echo "Frontend: Built and served via Nginx"
 echo "Virtual Environment: $PROJECT_DIR/$VENV_DIR"
 echo ""
 echo "PM2 Commands:"
 echo "  pm2 status          - Check status"
-echo "  pm2 logs stirix-api - View logs"
-echo "  pm2 restart stirix-api - Restart backend"
-echo "  pm2 stop stirix-api - Stop backend"
+echo "  pm2 logs stire-api - View logs"
+echo "  pm2 restart stire-api - Restart backend"
+echo "  pm2 stop stire-api - Stop backend"
 echo ""
 echo "Nginx Commands:"
 echo "  $SUDO nginx -t              - Test configuration"

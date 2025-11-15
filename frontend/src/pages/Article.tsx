@@ -51,7 +51,7 @@ export default function ArticlePage() {
 
   useEffect(() => {
     if (!article) return;
-    document.title = `${article.title} – Stirix`;
+    document.title = `${article.title} – Stire`;
     const desc = article.meta_description || (article.summary || '').slice(0, 160);
     setHeadTag('meta[name="description"]', () => {
       const m = document.createElement('meta');

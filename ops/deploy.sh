@@ -155,11 +155,11 @@ fi
 SERVICE_NAME="${SERVICE_NAME_OVERRIDE:-stire.site}"
 SERVICE_UNIT="/etc/systemd/system/${SERVICE_NAME}.service"
 
-if [ -f "$APP_DIR/ops/systemd/stirix.service" ] && command -v systemctl >/dev/null 2>&1; then
+if [ -f "$APP_DIR/ops/systemd/stire.service" ] && command -v systemctl >/dev/null 2>&1; then
   echo "Configuring systemd service: $SERVICE_NAME"
   TMP_SERVICE="/tmp/${SERVICE_NAME}.service"
   # Use service template and replace /opt/app with actual APP_DIR
-  sed "s|/opt/app|$APP_DIR|g" "$APP_DIR/ops/systemd/stirix.service" > "$TMP_SERVICE"
+  sed "s|/opt/app|$APP_DIR|g" "$APP_DIR/ops/systemd/stire.service" > "$TMP_SERVICE"
   # Default to running as root (adjust in template if you change user)
   sed -i "s|^User=YOUR_USER|User=root|" "$TMP_SERVICE"
 

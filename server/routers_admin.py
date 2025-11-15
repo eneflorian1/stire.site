@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Form
 from sqlalchemy import func
@@ -207,6 +207,25 @@ def admin_delete(article_id: str, session: Session = Depends(get_session)):
     if not article:
         raise HTTPException(status_code=404, detail="Article not found")
     session.delete(article)
+    session.commit()
+    return RedirectResponse(url="/admin", status_code=HTTP_303_SEE_OTHER)
+
+
+@router.post("/admin/bulk-delete")
+def admin_bulk_delete(
+    ids: List[str] = Form(default=[]),
+    session: Session = Depends(get_session),
+):
+    if not ids:
+        return RedirectResponse(url="/admin", status_code=HTTP_303_SEE_OTHER)
+
+    stmt = select(Article).where(Article.id.in_(ids))
+    articles = session.exec(stmt).all()
+    if not articles:
+        return RedirectResponse(url="/admin", status_code=HTTP_303_SEE_OTHER)
+
+    for a in articles:
+        session.delete(a)
     session.commit()
     return RedirectResponse(url="/admin", status_code=HTTP_303_SEE_OTHER)
 

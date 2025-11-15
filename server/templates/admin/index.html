@@ -13,55 +13,82 @@
         <button type="submit">Caută</button>
         <a class="btn" href="/admin/new">Adaugă articol</a>
       </form>
+      <form id="bulk-delete-form" action="/admin/bulk-delete" method="post" style="margin-left:auto;display:flex;gap:8px;align-items:center">
+        <button type="submit" class="secondary" onclick="return confirmBulkDelete()">Șterge selectate</button>
+      </form>
     </div>
-    <table>
-      <thead>
-        <tr>
-          <th style="width:28%">Titlu</th>
-          <th style="width:36%">Rezumat</th>
-          <th>Sursă</th>
-          <th>Categorie</th>
-          <th>Publicat</th>
-          <th style="width:160px"></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for a in articles %}
+    <form id="articles-form" action="/admin/bulk-delete" method="post">
+      <table>
+        <thead>
           <tr>
-            <td>{{ a.title }}</td>
-            <td class="muted">{{ a.summary }}</td>
-            <td>{{ a.source }}</td>
-            <td>{{ a.category }}</td>
-            <td class="muted">{{ a.published_at }}</td>
-            <td>
-              <div class="row-actions">
-                <a class="btn" href="/admin/{{ a.id }}/edit">Editează</a>
-                <form action="/admin/{{ a.id }}/delete" method="post" onsubmit="return confirm('Ștergi articolul?')">
-                  <button class="secondary" type="submit">Șterge</button>
-                </form>
-              </div>
-            </td>
+            <th style="width:32px"><input type="checkbox" id="select-all" /></th>
+            <th style="width:28%">Titlu</th>
+            <th style="width:36%">Rezumat</th>
+            <th>Sursă</th>
+            <th>Categorie</th>
+            <th>Publicat</th>
+            <th style="width:160px"></th>
           </tr>
-        {% endfor %}
-        {% if not articles %}
-          <tr><td colspan="6" class="muted" style="padding:24px">Nu sunt articole.</td></tr>
-        {% endif %}
-      </tbody>
-    </table>
-    <div class="footer">
-      {% set total_pages = (total // page_size) + (1 if total % page_size > 0 else 0) %}
-      <div class="muted">Total: {{ total }}</div>
-      <div>
-        {% if page > 1 %}
-          <a class="pill" href="/admin?q={{ q }}&category={{ category }}&page={{ page - 1 }}">Prev</a>
-        {% endif %}
-        <span class="pill">Pagina {{ page }} / {{ total_pages or 1 }}</span>
-        {% if page < total_pages %}
-          <a class="pill" href="/admin?q={{ q }}&category={{ category }}&page={{ page + 1 }}">Next</a>
-        {% endif %}
+        </thead>
+        <tbody>
+          {% for a in articles %}
+            <tr>
+              <td><input type="checkbox" name="ids" value="{{ a.id }}" class="row-check" form="articles-form" /></td>
+              <td>{{ a.title }}</td>
+              <td class="muted">{{ a.summary }}</td>
+              <td>{{ a.source }}</td>
+              <td>{{ a.category }}</td>
+              <td class="muted">{{ a.published_at }}</td>
+              <td>
+                <div class="row-actions">
+                  <a class="btn" href="/admin/{{ a.id }}/edit">Editează</a>
+                  <form action="/admin/{{ a.id }}/delete" method="post" onsubmit="return confirm('Ștergi articolul?')">
+                    <button class="secondary" type="submit">Șterge</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+          {% if not articles %}
+            <tr><td colspan="7" class="muted" style="padding:24px">Nu sunt articole.</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+      <div class="footer">
+        {% set total_pages = (total // page_size) + (1 if total % page_size > 0 else 0) %}
+        <div class="muted">Total: {{ total }}</div>
+        <div>
+          {% if page > 1 %}
+            <a class="pill" href="/admin?q={{ q }}&category={{ category }}&page={{ page - 1 }}">Prev</a>
+          {% endif %}
+          <span class="pill">Pagina {{ page }} / {{ total_pages or 1 }}</span>
+          {% if page < total_pages %}
+            <a class="pill" href="/admin?q={{ q }}&category={{ category }}&page={{ page + 1 }}">Next</a>
+          {% endif %}
+        </div>
       </div>
-    </div>
+    </form>
   </div>
+  <script>
+    const selectAll = document.getElementById('select-all');
+    const checkboxes = document.querySelectorAll('.row-check');
+    const bulkForm = document.getElementById('articles-form');
+
+    if (selectAll) {
+      selectAll.addEventListener('change', () => {
+        checkboxes.forEach(cb => { cb.checked = selectAll.checked; });
+      });
+    }
+
+    function confirmBulkDelete() {
+      const anyChecked = Array.from(checkboxes).some(cb => cb.checked);
+      if (!anyChecked) {
+        alert('Selectează cel puțin un articol pentru ștergere.');
+        return false;
+      }
+      return confirm('Ștergi articolele selectate?');
+    }
+  </script>
 {% endblock %}
 
 
