@@ -215,18 +215,18 @@ echo "[6/8] Setting up Nginx configuration..."
 if ! command -v nginx >/dev/null 2>&1; then
     echo "⚠ Nginx not found. Skipping Nginx setup."
     echo "  Install Nginx first: $SUDO apt-get install -y nginx"
-    echo "  Then manually copy the config from ops/nginx/stirix.site"
+    echo "  Then manually copy the config from ops/nginx/stire.site"
 else
 NGINX_SITES_AVAILABLE="/etc/nginx/sites-available"
 NGINX_SITES_ENABLED="/etc/nginx/sites-enabled"
 NGINX_CONFIG_FILE="$NGINX_SITES_AVAILABLE/$DOMAIN"
 
 # Create nginx config from template
-if [ -f "ops/nginx/stirix.site" ]; then
+if [ -f "ops/nginx/stire.site" ]; then
     # Use existing template and replace domain
-    sed "s/stirix\.site/$DOMAIN/g" ops/nginx/stirix.site > "/tmp/nginx_${DOMAIN}.conf"
-    # Also replace www.stirix.site with www.$DOMAIN
-    sed -i "s/www\.stirix\.site/www.$DOMAIN/g" "/tmp/nginx_${DOMAIN}.conf"
+    sed "s/stire\.site/$DOMAIN/g" ops/nginx/stire.site > "/tmp/nginx_${DOMAIN}.conf"
+    # Also replace www.stire.site with www.$DOMAIN
+    sed -i "s/www\.stire\.site/www.$DOMAIN/g" "/tmp/nginx_${DOMAIN}.conf"
     # Replace /opt/app with actual project directory
     sed -i "s|/opt/app|$PROJECT_DIR|g" "/tmp/nginx_${DOMAIN}.conf"
 else

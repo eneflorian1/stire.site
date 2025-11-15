@@ -57,7 +57,7 @@ else
 fi
 
 # Update Nginx configuration if template exists
-if [ -f "$APP_DIR/ops/nginx/stirix.site" ] && command -v nginx >/dev/null 2>&1; then
+if [ -f "$APP_DIR/ops/nginx/stire.site" ] && command -v nginx >/dev/null 2>&1; then
   echo "Updating Nginx configuration..."
   
   # Detect domain from project directory name (same as setup.sh)
@@ -69,13 +69,11 @@ if [ -f "$APP_DIR/ops/nginx/stirix.site" ] && command -v nginx >/dev/null 2>&1; 
   NGINX_CONFIG_FILE="$NGINX_SITES_AVAILABLE/$DOMAIN"
   
   # Create nginx config from template
-  if [ -f "$APP_DIR/ops/nginx/stirix.site" ]; then
+  if [ -f "$APP_DIR/ops/nginx/stire.site" ]; then
     # Use existing template and replace domain
-    sed "s/stirix\.site/$DOMAIN/g" "$APP_DIR/ops/nginx/stirix.site" > "/tmp/nginx_${DOMAIN}.conf"
-    # Also replace www.stirix.site with www.$DOMAIN
-    sed -i "s/www\.stirix\.site/www.$DOMAIN/g" "/tmp/nginx_${DOMAIN}.conf"
-    # Also replace stire.site if present
-    sed -i "s/stire\.site/$DOMAIN/g" "/tmp/nginx_${DOMAIN}.conf"
+    sed "s/stire\.site/$DOMAIN/g" "$APP_DIR/ops/nginx/stire.site" > "/tmp/nginx_${DOMAIN}.conf"
+    # Also replace www.stire.site with www.$DOMAIN
+    sed -i "s/www\.stire\.site/www.$DOMAIN/g" "/tmp/nginx_${DOMAIN}.conf"
     sed -i "s/www\.stire\.site/www.$DOMAIN/g" "/tmp/nginx_${DOMAIN}.conf"
     # Replace /opt/app with actual project directory
     sed -i "s|/opt/app|$APP_DIR|g" "/tmp/nginx_${DOMAIN}.conf"

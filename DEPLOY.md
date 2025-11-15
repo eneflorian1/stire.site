@@ -1,7 +1,7 @@
 
 ## VPS Details
 
-- Domain: `stirix.site`
+- Domain: `stire.site`
 - IP (SSH_HOST): `64.225.49.128`
 - SSH user (SSH_USER): `root`
 - App dir: `/opt/app`
@@ -33,12 +33,12 @@ ssh -i %USERPROFILE%\.ssh\github_deploy_key root@64.225.49.128 "echo OK"
 ssh root@64.225.49.128
 
 # Backup and remove old project (adjust path if different)
-OLD_DIR="/var/www/stirix.site"
+OLD_DIR="/var/www/stire.site"
 if [ -d "$OLD_DIR" ]; then
   TS="$(date +%Y%m%d-%H%M%S)"
-  tar -C "$(dirname "$OLD_DIR")" -czf "/root/stirix.site.$TS.tgz" "$(basename "$OLD_DIR")"
+  tar -C "$(dirname "$OLD_DIR")" -czf "/root/stire.site.$TS.tgz" "$(basename "$OLD_DIR")"
   rm -rf "$OLD_DIR"
-  echo "Old project removed. Backup: /root/stirix.site.$TS.tgz"
+  echo "Old project removed. Backup: /root/stire.site.$TS.tgz"
 fi
 
 # Create target dir
@@ -81,12 +81,12 @@ sudo systemctl restart stirix
 sudo systemctl status stirix --no-pager
 ```
 
-## 5) Nginx reverse proxy (stirix.site → 127.0.0.1:8000)
+## 5) Nginx reverse proxy (stire.site → 127.0.0.1:8000)
 
 ```bash
-sudo cp ops/nginx/stirix.site /etc/nginx/sites-available/stirix.site
-sudo sed -i 's/server_name .*/server_name stirix.site www.stirix.site;/' /etc/nginx/sites-available/stirix.site
-sudo ln -sf /etc/nginx/sites-available/stirix.site /etc/nginx/sites-enabled/stirix.site
+sudo cp ops/nginx/stire.site /etc/nginx/sites-available/stire.site
+sudo sed -i 's/server_name .*/server_name stire.site www.stire.site;/' /etc/nginx/sites-available/stire.site
+sudo ln -sf /etc/nginx/sites-available/stire.site /etc/nginx/sites-enabled/stire.site
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
@@ -94,7 +94,7 @@ Optional HTTPS:
 
 ```bash
 sudo apt install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d stirix.site -d www.stirix.site
+sudo certbot --nginx -d stire.site -d www.stire.site
 ```
 
 ## 6) GitHub Actions Secrets (Repo → Settings → Secrets and variables → Actions)
@@ -137,7 +137,7 @@ Unde `<PROJECT_DIR>` este folderul detectat automat sau cel setat în secret-ul 
 ssh root@64.225.49.128 'bash /opt/app/deploy.sh'
 
 # Health check via Nginx
-curl -fsS http://stirix.site/health || curl -fsS http://64.225.49.128/health || true
+curl -fsS http://stire.site/health || curl -fsS http://64.225.49.128/health || true
 ```
 
 Notes:

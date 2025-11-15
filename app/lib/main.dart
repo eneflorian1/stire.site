@@ -138,7 +138,7 @@ class ApiClient {
   final http.Client _client;
 
   ApiClient({String? baseUrl, String? apiKey, http.Client? client})
-      : baseUrl = baseUrl ?? (kIsWeb ? 'https://stirix.site/api' : 'http://10.0.2.2:8000'),
+      : baseUrl = baseUrl ?? (kIsWeb ? 'https://stire.site/api' : 'http://10.0.2.2:8000'),
         apiKey = apiKey ?? _defaultApiKey,
         _client = client ?? http.Client();
 
