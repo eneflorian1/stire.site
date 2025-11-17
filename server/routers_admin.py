@@ -13,6 +13,7 @@ from db import get_session
 from models import Article, ArticleCreate
 from deps import require_api_key
 from autoposter import autoposter as _autoposter
+from google_indexing import submit_url_to_google, build_article_url
 
 
 router = APIRouter()
@@ -112,6 +113,19 @@ def admin_create(
     )
     session.add(article)
     session.commit()
+    session.refresh(article)
+    
+    # Submit URL către Google Indexing API
+    try:
+        scheme = request.headers.get("x-forwarded-proto") or request.url.scheme
+        host = request.headers.get("x-forwarded-host") or request.headers.get("host", "localhost")
+        base_url = f"{scheme}://{host}".rstrip("/")
+        article_url = build_article_url(article, base_url)
+        submit_url_to_google(article_url, action="URL_UPDATED")
+    except Exception as e:
+        # Nu întrerupe procesul dacă submit-ul eșuează
+        pass
+    
     return RedirectResponse(url="/admin", status_code=HTTP_303_SEE_OTHER)
 
 
@@ -172,6 +186,7 @@ def admin_edit_form(article_id: str, request: Request, session: Session = Depend
 @router.post("/admin/{article_id}/edit")
 def admin_update(
     article_id: str,
+    request: Request,
     title: str = Form(...),
     summary: str = Form(...),
     image_url: str = Form(...),
@@ -198,6 +213,18 @@ def admin_update(
     session.add(article)
     session.commit()
     session.refresh(article)
+    
+    # Submit URL către Google Indexing API
+    try:
+        scheme = request.headers.get("x-forwarded-proto") or request.url.scheme
+        host = request.headers.get("x-forwarded-host") or request.headers.get("host", "localhost")
+        base_url = f"{scheme}://{host}".rstrip("/")
+        article_url = build_article_url(article, base_url)
+        submit_url_to_google(article_url, action="URL_UPDATED")
+    except Exception as e:
+        # Nu întrerupe procesul dacă submit-ul eșuează
+        pass
+    
     return RedirectResponse(url="/admin", status_code=HTTP_303_SEE_OTHER)
 
 
