@@ -168,8 +168,6 @@ render.experimental.xml
 
 # Google Services (e.g. APIs or Firebase)
 google-services.json
-**/google_service_account.json
-**/client_secret_*.json
 
 # Android Profiling
 *.hprof

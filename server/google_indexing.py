@@ -19,6 +19,13 @@ from googleapiclient.errors import HttpError
 
 logger = logging.getLogger(__name__)
 
+# Calea către fișierul JSON cu credențialele service account (fallback)
+# Poate fi setată prin variabila de mediu GOOGLE_SERVICE_ACCOUNT_FILE
+SERVICE_ACCOUNT_FILE = os.environ.get(
+    "GOOGLE_SERVICE_ACCOUNT_FILE",
+    os.path.join(os.path.dirname(__file__), "google_service_account.json")
+)
+
 # Scopul necesar pentru Google Indexing API
 SCOPES = ["https://www.googleapis.com/auth/indexing"]
 
@@ -45,14 +52,9 @@ def _get_credentials_from_db():
 
 def _get_credentials_from_file():
     """Obține credențialele Google din fișier (fallback pentru compatibilitate)."""
-    service_account_file = os.environ.get(
-        "GOOGLE_SERVICE_ACCOUNT_FILE",
-        os.path.join(os.path.dirname(__file__), "google_service_account.json")
-    )
-    
-    if os.path.exists(service_account_file):
+    if os.path.exists(SERVICE_ACCOUNT_FILE):
         try:
-            with open(service_account_file, 'r') as f:
+            with open(SERVICE_ACCOUNT_FILE, 'r') as f:
                 return json.load(f)
         except Exception as e:
             logger.error(f"Eroare la citirea fișierului de credențiale: {e}")
@@ -79,7 +81,7 @@ def _get_indexing_service():
         logger.warning(
             "Credențialele Google nu au fost găsite nici în baza de date, nici în fișier. "
             "Google Indexing API va fi dezactivat. "
-            "Rulează migrate_google_credentials.py pentru a migra credențialele în baza de date."
+            "Încarcă fișierul JSON în admin dashboard sau plasează fișierul JSON în server/."
         )
         return None
     
