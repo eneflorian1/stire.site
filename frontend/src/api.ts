@@ -226,26 +226,6 @@ export async function setGeminiKey(key: string): Promise<void> {
   }
 }
 
-export async function uploadGoogleServiceAccount(file: File): Promise<void> {
-  const url = buildUrl('/settings/google-service-account');
-  const headerKey = getAdminApiKey();
-  const formData = new FormData();
-  formData.append('file', file);
-  
-  const headers: Record<string, string> = {};
-  if (headerKey) headers['x-api-key'] = headerKey;
-
-  const resp = await fetch(url, {
-    method: 'POST',
-    headers,
-    body: formData,
-  });
-  if (!resp.ok) {
-    const txt = await resp.text().catch(() => '');
-    throw new Error(`POST ${url} failed: ${resp.status} ${txt}`);
-  }
-}
-
 // Autoposter controls
 export async function getAutoposterStatus(): Promise<AutoposterStatus> {
   return httpGet<AutoposterStatus>('/autoposter/status');

@@ -127,3 +127,17 @@ class TopicStatus(SQLModel, table=True):
     last_error: Optional[str] = None
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
+
+class IndexingEvent(SQLModel, table=True):
+    """
+    Log simplu pentru evenimente de ping/indexare, astfel încât să se poată
+    vedea în DB când a fost trimis ultimul submit pentru un articol.
+    """
+
+    id: str = Field(default_factory=lambda: str(uuid4()), primary_key=True, index=True)
+    article_id: str = Field(index=True)
+    provider: str
+    status: str
+    error: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+

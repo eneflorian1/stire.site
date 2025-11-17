@@ -18,7 +18,6 @@ import {
   deleteAnnouncement,
   getGeminiKey,
   setGeminiKey,
-  uploadGoogleServiceAccount,
   getAutoposterStatus,
   getAutoposterLogs,
   autoposterStart,
@@ -878,15 +877,6 @@ function GeminiAdmin() {
     }
   }
 
-  async function handleUploadGoogleServiceAccount(file: File) {
-    try {
-      await uploadGoogleServiceAccount(file);
-      alert('Fișierul Google Service Account a fost încărcat cu succes!');
-    } catch (e) {
-      alert(`Eroare la încărcare: ${String(e)}`);
-    }
-  }
-
   // FIX: Funcție optimizată pentru Start cu feedback vizual imediat
   async function onStart() {
     try {
@@ -983,27 +973,6 @@ function GeminiAdmin() {
               <button className="btn" onClick={() => void saveKey()}>Salvează</button>
             </div>
             <div style={{ marginTop: 8 }} className="muted">Cheia este stocată în baza de date.</div>
-          </div>
-
-          <div className="card" style={{ padding: 12, marginBottom: 12 }}>
-            <div style={{ marginBottom: 8 }}>
-              <strong>Google Service Account JSON</strong>
-            </div>
-            <div style={{ marginBottom: 8 }} className="muted">
-              Încarcă fișierul JSON cu credențialele Google Service Account pentru Google Indexing API.
-            </div>
-            <input
-              type="file"
-              accept=".json"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  void handleUploadGoogleServiceAccount(file);
-                }
-              }}
-              style={{ marginBottom: 8 }}
-            />
-            <div className="muted">Fișierul este stocat în baza de date.</div>
           </div>
 
           <div className="card" style={{ padding: 12, marginBottom: 12 }}>

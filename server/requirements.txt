@@ -9,7 +9,3 @@ python-multipart>=0.0.9
 
 # HTTP client pentru TrendCollector
 requests>=2.32.0
-
-# Google Indexing API pentru submit automat de URL-uri
-google-api-python-client>=2.100.0
-google-auth>=2.23.0

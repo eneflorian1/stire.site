@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import List, Optional, Any, cast
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, desc
 from sqlmodel import Session, select
 
@@ -13,7 +13,8 @@ import re
 from html import escape
 from datetime import date as _date
 import unicodedata
-from google_indexing import submit_url_to_google, build_article_url
+
+from google_indexing import submit as submit_to_indexing
 
 
 router = APIRouter()
@@ -55,11 +56,7 @@ def get_article(article_id: str, session: Session = Depends(get_session)) -> Art
 
 
 @router.post("/articles", response_model=Article, dependencies=[Depends(require_api_key)])
-def create_article(
-    payload: ArticleCreate,
-    request: Request,
-    session: Session = Depends(get_session)
-) -> Article:
+def create_article(payload: ArticleCreate, session: Session = Depends(get_session)) -> Article:
     published_at = payload.published_at or datetime.utcnow()
     article = Article(
         title=payload.title,
@@ -72,18 +69,15 @@ def create_article(
     session.add(article)
     session.commit()
     session.refresh(article)
-    
-    # Submit URL către Google Indexing API
+
+    # Trimite notificare către Google (ping sitemap) și opțional GitHub,
+    # imediat după salvarea articolului.
     try:
-        scheme = request.headers.get("x-forwarded-proto") or request.url.scheme
-        host = request.headers.get("x-forwarded-host") or request.headers.get("host", "localhost")
-        base_url = f"{scheme}://{host}".rstrip("/")
-        article_url = build_article_url(article, base_url)
-        submit_url_to_google(article_url, action="URL_UPDATED")
-    except Exception as e:
-        # Nu întrerupe procesul dacă submit-ul eșuează
+        submit_to_indexing(article, session=session)
+    except Exception:
+        # Nu blocăm crearea articolului dacă ping-ul eșuează.
         pass
-    
+
     return article
 
 
@@ -91,7 +85,6 @@ def create_article(
 def update_article(
     article_id: str,
     payload: ArticleUpdate,
-    request: Request,
     session: Session = Depends(get_session),
 ) -> Article:
     article = session.get(Article, article_id)
@@ -105,18 +98,13 @@ def update_article(
     session.add(article)
     session.commit()
     session.refresh(article)
-    
-    # Submit URL către Google Indexing API
+
+    # La update, re-trimitem și notificarea de indexare.
     try:
-        scheme = request.headers.get("x-forwarded-proto") or request.url.scheme
-        host = request.headers.get("x-forwarded-host") or request.headers.get("host", "localhost")
-        base_url = f"{scheme}://{host}".rstrip("/")
-        article_url = build_article_url(article, base_url)
-        submit_url_to_google(article_url, action="URL_UPDATED")
-    except Exception as e:
-        # Nu întrerupe procesul dacă submit-ul eșuează
+        submit_to_indexing(article, session=session)
+    except Exception:
         pass
-    
+
     return article
 
 
