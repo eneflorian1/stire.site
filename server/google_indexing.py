@@ -10,6 +10,7 @@ Utilizare:
 """
 
 import os
+import json
 import logging
 from typing import Optional
 from google.oauth2 import service_account
@@ -18,18 +19,44 @@ from googleapiclient.errors import HttpError
 
 logger = logging.getLogger(__name__)
 
-# Calea către fișierul JSON cu credențialele service account
-# Poate fi setată prin variabila de mediu GOOGLE_SERVICE_ACCOUNT_FILE
-SERVICE_ACCOUNT_FILE = os.environ.get(
-    "GOOGLE_SERVICE_ACCOUNT_FILE",
-    os.path.join(os.path.dirname(__file__), "google_service_account.json")
-)
-
 # Scopul necesar pentru Google Indexing API
 SCOPES = ["https://www.googleapis.com/auth/indexing"]
 
 # Cache pentru client-ul Google API (se inițializează o singură dată)
 _indexing_service: Optional[object] = None
+
+
+def _get_credentials_from_db():
+    """Obține credențialele Google din baza de date."""
+    try:
+        from db import engine
+        from models import Setting
+        from sqlmodel import Session
+        
+        with Session(engine) as session:
+            setting = session.get(Setting, "google_service_account_json")
+            if setting and setting.value:
+                return json.loads(setting.value)
+        return None
+    except Exception as e:
+        logger.error(f"Eroare la citirea credențialelor din baza de date: {e}")
+        return None
+
+
+def _get_credentials_from_file():
+    """Obține credențialele Google din fișier (fallback pentru compatibilitate)."""
+    service_account_file = os.environ.get(
+        "GOOGLE_SERVICE_ACCOUNT_FILE",
+        os.path.join(os.path.dirname(__file__), "google_service_account.json")
+    )
+    
+    if os.path.exists(service_account_file):
+        try:
+            with open(service_account_file, 'r') as f:
+                return json.load(f)
+        except Exception as e:
+            logger.error(f"Eroare la citirea fișierului de credențiale: {e}")
+    return None
 
 
 def _get_indexing_service():
@@ -39,21 +66,44 @@ def _get_indexing_service():
     if _indexing_service is not None:
         return _indexing_service
     
-    # Verifică dacă fișierul de credențiale există
-    if not os.path.exists(SERVICE_ACCOUNT_FILE):
+    # Încearcă să obțină credențialele din baza de date (prioritate)
+    credentials_data = _get_credentials_from_db()
+    
+    # Dacă nu există în baza de date, încearcă din fișier (fallback)
+    if not credentials_data:
+        credentials_data = _get_credentials_from_file()
+        if credentials_data:
+            logger.info("Credențialele Google au fost încărcate din fișier (fallback)")
+    
+    if not credentials_data:
         logger.warning(
-            f"Fișierul de credențiale Google nu există: {SERVICE_ACCOUNT_FILE}. "
+            "Credențialele Google nu au fost găsite nici în baza de date, nici în fișier. "
             "Google Indexing API va fi dezactivat. "
-            "Setează GOOGLE_SERVICE_ACCOUNT_FILE sau plasează fișierul JSON în server/."
+            "Rulează migrate_google_credentials.py pentru a migra credențialele în baza de date."
         )
         return None
     
     try:
-        # Încarcă credențialele din fișierul JSON
-        credentials = service_account.Credentials.from_service_account_file(
-            SERVICE_ACCOUNT_FILE,
-            scopes=SCOPES
-        )
+        # Creează credențialele din JSON
+        # Google API acceptă atât service account cât și OAuth client credentials
+        if credentials_data.get("type") == "service_account":
+            # Service account format
+            credentials = service_account.Credentials.from_service_account_info(
+                credentials_data,
+                scopes=SCOPES
+            )
+        else:
+            # OAuth client format - pentru Indexing API avem nevoie de service account
+            # Dacă este OAuth client, încercăm să folosim direct info-ul
+            logger.warning(
+                "Formatul credențialelor pare să fie OAuth client, nu service account. "
+                "Google Indexing API necesită service account. "
+                "Verifică că ai un service account JSON valid."
+            )
+            # Încercăm totuși să creăm credențialele
+            # Pentru OAuth client, ar trebui să folosim flow diferit, dar pentru Indexing API
+            # avem nevoie de service account
+            return None
         
         # Construiește serviciul Google Indexing API
         _indexing_service = build("indexing", "v3", credentials=credentials)
@@ -61,6 +111,8 @@ def _get_indexing_service():
         return _indexing_service
     except Exception as e:
         logger.error(f"Eroare la inițializarea Google Indexing API: {e}")
+        import traceback
+        logger.debug(traceback.format_exc())
         return None
 
 
