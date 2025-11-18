@@ -111,6 +111,14 @@ class AutoposterLog(SQLModel, table=True):
     message: str
 
 
+class IndexingLog(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True, index=True)
+    url: str
+    action: str  # "PING" sau "INDEX"
+    status: str  # "SUCCESS" sau "ERROR"
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 class AutoposterStatus(SQLModel):
     running: bool
     started_at: Optional[datetime]

@@ -53,15 +53,12 @@ jobs:
             ')
           fi
           echo "Deploying to project directory: $PROJECT_DIR"
-
-          # Scrie fisierul client_secret pe server, in folderul server/
+          # Scriere fișier secret pe server
           if [ -n "$GOOGLE_OAUTH_CLIENT_SECRET_JSON" ]; then
-            echo "Writing Google OAuth client secret JSON to server..."
-            printf '%s\n' "$GOOGLE_OAUTH_CLIENT_SECRET_JSON" | ssh -i ~/.ssh/id_ed25519 ${SSH_USER}@${SSH_HOST} "cat > $PROJECT_DIR/server/client_secret_oauth.json"
-          else
-            echo "GOOGLE_OAUTH_CLIENT_SECRET_JSON not set; skipping client_secret_oauth.json creation."
+            ssh -i ~/.ssh/id_ed25519 ${SSH_USER}@${SSH_HOST} "cat > $PROJECT_DIR/server/client_secret_oauth.json" << 'EOF'
+          ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET_JSON }}
+          EOF
           fi
-
           # Run deploy.sh with project directory as parameter
           ssh -i ~/.ssh/id_ed25519 ${SSH_USER}@${SSH_HOST} "bash $PROJECT_DIR/ops/deploy.sh $PROJECT_DIR"
 

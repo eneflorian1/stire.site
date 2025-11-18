@@ -1,85 +1,59 @@
-import logging
-from datetime import datetime
-from typing import Optional
+from __future__ import annotations
 
+from sqlmodel import Session
 import requests
 
-from models import Article
-
-logger = logging.getLogger(__name__)
+from models import IndexingLog
 
 
-def _slugify(value: str) -> str:
+def ping_sitemap(url: str) -> None:
     """
-    Simplified slugify helper – keep it in sync with routers_sitemap/routers_articles.
+    Trimite un ping către Google pentru sitemap-ul dat, folosind endpoint-ul public
+    `https://www.google.com/ping?sitemap=...`.
     """
-    import re
-    import unicodedata
-
-    value = unicodedata.normalize("NFKD", value)
-    value = "".join(ch for ch in value if not unicodedata.combining(ch))
-    value = value.lower()
-    value = re.sub(r"[^a-z0-9\s-]", "", value)
-    value = re.sub(r"[\s_-]+", "-", value).strip("-")
-    return value[:120]
-
-
-def build_article_url(base_url: str, article: Article) -> str:
-    """
-    Construiește URL-ul public al articolului, identic cu cel folosit în sitemap.
-    """
-    slug = _slugify(article.title)
-    date_str = article.published_at.strftime("%d-%m-%Y") if isinstance(article.published_at, datetime) else ""
-    category = article.category or "stiri"
-    cat_slug = _slugify(category)
-    return f"{base_url.rstrip('/')}/{cat_slug}/articol/{date_str}/{slug}"
-
-
-def ping_sitemap(base_url: str) -> None:
-    """
-    Pingează sitemap-ul la Google (și Bing) după creare/actualizare articol.
-
-    Nu aruncă excepții dacă request-ul eșuează – doar loghează un warning.
-    """
-    sitemap_url = f"{base_url.rstrip('/')}/sitemap.xml"
-    endpoints = {
-        "google": "https://www.google.com/ping",
-        "bing": "https://www.bing.com/ping",
-    }
-    for name, endpoint in endpoints.items():
-        try:
-            resp = requests.get(endpoint, params={"sitemap": sitemap_url}, timeout=5)
-            if resp.status_code != 200:
-                logger.warning("Sitemap ping to %s returned status %s", name, resp.status_code)
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("Sitemap ping to %s failed: %s", name, exc)
-
-
-def notify_new_or_updated_article(article: Article, *, base_url: Optional[str]) -> None:
-    """
-    Wrapper apelat din endpointurile de creare/actualizare articole.
-
-    - Construiește URL-ul articolului (pentru log).
-    - Pingează sitemap-ul la motoarele de căutare.
-    - Este tolerant la erori (nu trebuie să blocheze salvarea articolului).
-    """
-    if not base_url:
-        # Dacă nu știm baza de URL, nu facem nimic – nu blocăm request-ul.
-        logger.debug("notify_new_or_updated_article: missing base_url, skipping ping")
+    if not url:
         return
 
     try:
-        article_url = build_article_url(base_url, article)
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("Failed to build article URL for indexing: %s", exc)
-        article_url = None
+        resp = requests.get(
+            "https://www.google.com/ping",
+            params={"sitemap": url},
+            timeout=10,
+        )
+        # Ping-ul nu trebuie să blocheze flow-ul articolului; ignorăm erorile.
+        resp.raise_for_status()
+    except Exception:
+        return
 
+
+def submit_to_google_indexing(url: str) -> None:
+    """
+    Placeholder pentru viitoarea integrare cu Google Indexing API.
+
+    Intenționat lăsată neimplementată deocamdată.
+    """
+    # Nu implementăm încă integrarea reală
+    pass
+
+
+def log_index_event(session: Session, url: str, action: str, status: str) -> None:
+    """
+    Scrie un eveniment de indexare în tabela `IndexingLog`.
+
+    :param session: sesiunea SQLModel activă
+    :param url: URL-ul articolului sau al sitemap-ului
+    :param action: \"PING\" sau \"INDEX\"
+    :param status: \"SUCCESS\" sau \"ERROR\"
+    """
     try:
-        ping_sitemap(base_url)
-        if article_url:
-            logger.info("Search engines notified (via sitemap ping) for article: %s", article_url)
-    except Exception as exc:  # noqa: BLE001
-        # Nu lăsăm ca o eroare de rețea să rupă API-ul.
-        logger.warning("Error while notifying search engines: %s", exc)
+        row = IndexingLog(url=url, action=action, status=status)
+        session.add(row)
+        session.commit()
+    except Exception:
+        # În caz de eroare de logging, nu blocăm request-ul principal
+        try:
+            session.rollback()
+        except Exception:
+            pass
 
 

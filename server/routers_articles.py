@@ -8,7 +8,8 @@ from sqlmodel import Session, select
 from db import get_session
 from deps import require_api_key
 from models import Article, ArticleCreate, ArticleUpdate
-from google_indexing import notify_new_or_updated_article
+from google_indexing import ping_sitemap, log_index_event
+import routers_admin_logs  # noqa: F401  - importat pentru a înregistra ruta /admin/indexing-logs
 from pydantic import BaseModel
 import re
 from html import escape
@@ -85,7 +86,10 @@ def create_article(
     # Notifică motoarele de căutare (ping sitemap) după salvare.
     try:
         base_url = _request_base_url(request)
-        notify_new_or_updated_article(article, base_url=base_url)
+        sitemap_url = f"{base_url}/sitemap.xml"
+        article_url = _build_article_url(base_url, article)
+        ping_sitemap(sitemap_url)
+        log_index_event(session, article_url, "PING", "SUCCESS")
     except Exception:
         # Nu blocăm request-ul dacă ping-ul dă eroare.
         pass
@@ -115,7 +119,10 @@ def update_article(
     # Notifică motoarele de căutare (ping sitemap) după update.
     try:
         base_url = _request_base_url(request)
-        notify_new_or_updated_article(article, base_url=base_url)
+        sitemap_url = f"{base_url}/sitemap.xml"
+        article_url = _build_article_url(base_url, article)
+        ping_sitemap(sitemap_url)
+        log_index_event(session, article_url, "PING", "SUCCESS")
     except Exception:
         pass
 
@@ -148,6 +155,14 @@ def _slugify(title: str) -> str:
     return value[:120]
 
 
+def _build_article_url(base_url: str, article: Article) -> str:
+    slug = _slugify(article.title)
+    date_str = article.published_at.strftime("%d-%m-%Y") if article.published_at else ""
+    category = article.category or "stiri"
+    cat_slug = _slugify(category)
+    return f"{base_url.rstrip('/')}/{cat_slug}/articol/{date_str}/{slug}"
+
+
 class ArticleDetail(BaseModel):
     id: str
     title: str
@@ -173,18 +188,19 @@ def _build_content_html(article: Article, session: Session) -> str:
         # 2) Ensure rel contains nofollow noopener (append if rel missing)
         def _ensure_rel(match: re.Match) -> str:
             tag = match.group(0)
-            if 'rel=' not in tag:
+            if "rel=" not in tag:
                 return tag[:-1] + ' rel="nofollow noopener">'
             # If rel exists but doesn't include both, append missing
-            rel_val_match = re.search(r"rel=\"([^\"]*)\"", tag)
+            rel_val_match = re.search(r'rel="([^"]*)"', tag)
             if not rel_val_match:
                 return tag
             rel_val = rel_val_match.group(1)
             needed = [v for v in ["nofollow", "noopener"] if v not in rel_val.split()]
             if needed:
                 new_rel = rel_val + " " + " ".join(needed)
-                tag = re.sub(r"rel=\"[^\"]*\"", f'rel="{new_rel}"', tag)
+                tag = re.sub(r'rel="[^"]*"', f'rel="{new_rel}"', tag)
             return tag
+
         html_text = re.sub(r"<a[^>]*>", _ensure_rel, html_text)
         return html_text
 
@@ -229,7 +245,7 @@ def _build_content_html(article: Article, session: Session) -> str:
         f"{related_html}"
     )
 
-    body_html = ''.join(paragraphs_html)
+    body_html = "".join(paragraphs_html)
     return f"{body_html}{external_html}{more_html}"
 
 
@@ -338,4 +354,5 @@ def get_article_by_seo_path(
             )
 
     raise HTTPException(status_code=404, detail="Article not found")
+
 

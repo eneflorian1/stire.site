@@ -31,8 +31,15 @@ import {
 } from '../api';
 import type { Topic, TopicStatus, Announcement, AutoposterStatus, AutoposterLog } from '../types';
 
+type IndexingLogRow = {
+  id: number;
+  url: string;
+  action: string;
+  status: string;
+  created_at: string;
+};
 export default function Admin() {
-  const tabs = ['Articole', 'Categorii', 'Topicuri', 'Anunțuri', 'Gemini'] as const;
+  const tabs = ['Articole', 'Categorii', 'Topicuri', 'Index Logs', 'Anunțuri', 'Gemini'] as const;
   type Tab = typeof tabs[number];
   const [tab, setTab] = useState<Tab>('Articole');
   const [w, setW] = useState<number>(typeof window !== 'undefined' ? window.innerWidth : 1024);
@@ -75,6 +82,7 @@ export default function Admin() {
         {tab === 'Articole' && <ArticlesAdmin />}
         {tab === 'Categorii' && <CategoriesAdmin />}
         {tab === 'Topicuri' && <TopicsAdmin />}
+        {tab === 'Index Logs' && <IndexLogsAdmin />}
         {tab === 'Anunțuri' && <AnnouncementsAdmin />}
         {tab === 'Gemini' && <GeminiAdmin />}
       </div>
@@ -766,6 +774,122 @@ function AnnouncementsAdmin() {
             </div>
           )}
         </>
+      )}
+    </div>
+  );
+}
+
+function IndexLogsAdmin() {
+  const [items, setItems] = useState<IndexingLogRow[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useMemo(() => async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const basePath = (import.meta.env.VITE_API_BASE_PATH as string) || '/api';
+      const path = `${String(basePath).replace(/\/$/, '')}/admin/indexing-logs`;
+      const resp = await fetch(path, { method: 'GET' });
+      if (!resp.ok) {
+        const txt = await resp.text().catch(() => '');
+        throw new Error(`GET ${path} failed: ${resp.status} ${txt}`);
+      }
+      const data = await resp.json();
+      if (Array.isArray(data)) {
+        setItems(data as IndexingLogRow[]);
+      } else if (Array.isArray((data as any).items)) {
+        setItems((data as any).items as IndexingLogRow[]);
+      } else {
+        setItems([]);
+      }
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { void load(); }, [load]);
+
+  function formatTs(value: string | null | undefined): string {
+    if (!value) return '-';
+    try {
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return value;
+      return d.toLocaleString('ro-RO', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return value;
+    }
+  }
+
+  return (
+    <div className="card" style={{ padding: 12 }}>
+      <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <div className="title">Index Logs</div>
+        <button className="btn secondary" onClick={() => void load()} disabled={loading}>
+          {loading ? 'Se încarcă…' : 'Reîncarcă'}
+        </button>
+      </div>
+      {error ? (
+        <div className="muted" style={{ color: '#ef4444', marginBottom: 8 }}>
+          {error}
+        </div>
+      ) : null}
+      {loading && items.length === 0 ? (
+        <div className="muted">Se încarcă...</div>
+      ) : items.length === 0 ? (
+        <div className="muted">Nu există loguri de indexare.</div>
+      ) : (
+        <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0 }}>
+            <thead>
+              <tr style={{ background: 'var(--admin-surface-high)', color: 'var(--admin-text)' }}>
+                <th style={{ textAlign: 'left', padding: '12px 14px' }}>URL</th>
+                <th style={{ textAlign: 'left', padding: '12px 14px', width: 120 }}>Acțiune</th>
+                <th style={{ textAlign: 'left', padding: '12px 14px', width: 120 }}>Status</th>
+                <th style={{ textAlign: 'left', padding: '12px 14px', width: 220 }}>Creat la</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((row) => (
+                <tr key={row.id} style={{ borderTop: '1px solid var(--admin-border)' }}>
+                  <td style={{ padding: '10px 14px', wordBreak: 'break-all' }}>
+                    <a href={row.url} target="_blank" rel="noopener noreferrer">
+                      {row.url}
+                    </a>
+                  </td>
+                  <td style={{ padding: '10px 14px' }}>
+                    <span className="chip">{row.action}</span>
+                  </td>
+                  <td style={{ padding: '10px 14px' }}>
+                    <span
+                      className="chip"
+                      style={{
+                        background:
+                          row.status === 'SUCCESS'
+                            ? 'rgba(16, 185, 129, 0.15)'
+                            : 'rgba(239, 68, 68, 0.15)',
+                        color: row.status === 'SUCCESS' ? '#10b981' : '#ef4444',
+                      }}
+                    >
+                      {row.status}
+                    </span>
+                  </td>
+                  <td style={{ padding: '10px 14px' }}>
+                    <span className="muted">{formatTs(row.created_at)}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );
