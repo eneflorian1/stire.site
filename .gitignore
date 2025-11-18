@@ -169,6 +169,9 @@ render.experimental.xml
 # Google Services (e.g. APIs or Firebase)
 google-services.json
 
+# Google OAuth client secrets (never commit these)
+client_secret_815875277508-u1vrirg79sqtm31vtk35cvhvnkf6if63.apps.googleusercontent.com.json
+
 # Android Profiling
 *.hprof
 server/client_secret_815875277508-u1vrirg79sqtm31vtk35cvhvnkf6if63.apps.googleusercontent.com.json

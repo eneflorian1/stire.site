@@ -12,10 +12,6 @@ Restart=always
 Environment=PYTHONUNBUFFERED=1
 Environment=DATABASE_URL=sqlite:///./news.db
 Environment=API_KEY=prodkey
-Environment=PUBLIC_SITE_URL=__PUBLIC_SITE_URL__
-Environment=GITHUB_INDEXING_REPO=__GITHUB_INDEXING_REPO__
-Environment=GITHUB_INDEXING_TOKEN=__GITHUB_INDEXING_TOKEN__
-Environment=INDEXING_ENABLED=1
 
 [Install]
 WantedBy=multi-user.target

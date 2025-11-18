@@ -32,6 +32,7 @@ jobs:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
           CERTBOT_EMAIL: ${{ secrets.CERTBOT_EMAIL }}
+          GOOGLE_OAUTH_CLIENT_SECRET_JSON: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET_JSON }}
         run: |
           # Detect project directory on server (same logic as setup.sh)
           # If PROJECT_DIR secret is set, use it; otherwise auto-detect
@@ -52,6 +53,15 @@ jobs:
             ')
           fi
           echo "Deploying to project directory: $PROJECT_DIR"
+
+          # Scrie fisierul client_secret pe server, in folderul server/
+          if [ -n "$GOOGLE_OAUTH_CLIENT_SECRET_JSON" ]; then
+            echo "Writing Google OAuth client secret JSON to server..."
+            printf '%s\n' "$GOOGLE_OAUTH_CLIENT_SECRET_JSON" | ssh -i ~/.ssh/id_ed25519 ${SSH_USER}@${SSH_HOST} "cat > $PROJECT_DIR/server/client_secret_oauth.json"
+          else
+            echo "GOOGLE_OAUTH_CLIENT_SECRET_JSON not set; skipping client_secret_oauth.json creation."
+          fi
+
           # Run deploy.sh with project directory as parameter
           ssh -i ~/.ssh/id_ed25519 ${SSH_USER}@${SSH_HOST} "bash $PROJECT_DIR/ops/deploy.sh $PROJECT_DIR"
 

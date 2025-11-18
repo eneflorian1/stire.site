@@ -1,20 +1,19 @@
 from datetime import datetime
 from typing import List, Optional, Any, cast
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import func, desc
 from sqlmodel import Session, select
 
 from db import get_session
 from deps import require_api_key
 from models import Article, ArticleCreate, ArticleUpdate
+from google_indexing import notify_new_or_updated_article
 from pydantic import BaseModel
 import re
 from html import escape
 from datetime import date as _date
 import unicodedata
-
-from google_indexing import submit as submit_to_indexing
 
 
 router = APIRouter()
@@ -55,8 +54,21 @@ def get_article(article_id: str, session: Session = Depends(get_session)) -> Art
     return article
 
 
+def _request_base_url(request: Request) -> str:
+    """
+    Construiește baza de URL (schema + host), ținând cont de X-Forwarded-* din nginx.
+    """
+    scheme = request.headers.get("x-forwarded-proto") or request.url.scheme
+    host = request.headers.get("x-forwarded-host") or request.headers.get("host", "localhost")
+    return f"{scheme}://{host}".rstrip("/")
+
+
 @router.post("/articles", response_model=Article, dependencies=[Depends(require_api_key)])
-def create_article(payload: ArticleCreate, session: Session = Depends(get_session)) -> Article:
+def create_article(
+    payload: ArticleCreate,
+    request: Request,
+    session: Session = Depends(get_session),
+) -> Article:
     published_at = payload.published_at or datetime.utcnow()
     article = Article(
         title=payload.title,
@@ -70,12 +82,12 @@ def create_article(payload: ArticleCreate, session: Session = Depends(get_sessio
     session.commit()
     session.refresh(article)
 
-    # Trimite notificare către Google (ping sitemap) și opțional GitHub,
-    # imediat după salvarea articolului.
+    # Notifică motoarele de căutare (ping sitemap) după salvare.
     try:
-        submit_to_indexing(article, session=session)
+        base_url = _request_base_url(request)
+        notify_new_or_updated_article(article, base_url=base_url)
     except Exception:
-        # Nu blocăm crearea articolului dacă ping-ul eșuează.
+        # Nu blocăm request-ul dacă ping-ul dă eroare.
         pass
 
     return article
@@ -85,6 +97,7 @@ def create_article(payload: ArticleCreate, session: Session = Depends(get_sessio
 def update_article(
     article_id: str,
     payload: ArticleUpdate,
+    request: Request,
     session: Session = Depends(get_session),
 ) -> Article:
     article = session.get(Article, article_id)
@@ -99,9 +112,10 @@ def update_article(
     session.commit()
     session.refresh(article)
 
-    # La update, re-trimitem și notificarea de indexare.
+    # Notifică motoarele de căutare (ping sitemap) după update.
     try:
-        submit_to_indexing(article, session=session)
+        base_url = _request_base_url(request)
+        notify_new_or_updated_article(article, base_url=base_url)
     except Exception:
         pass
 
