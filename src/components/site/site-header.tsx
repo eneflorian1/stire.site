@@ -33,5 +33,5 @@ const SiteHeader = ({ actions }: Props) => (
     </div>
   </header>
 );
- 
+
 export default SiteHeader;
