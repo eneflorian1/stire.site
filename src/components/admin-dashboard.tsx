@@ -275,10 +275,14 @@ const AdminDashboard = () => {
   const handleBannerChange = (
     event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
-    const { name, value, type, checked } = event.target;
+    const { name, value, type } = event.target;
+    const isCheckbox = type === 'checkbox';
+    const nextValue =
+      isCheckbox && 'checked' in event.target ? (event.target as HTMLInputElement).checked : value;
+
     setBannerForm((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: nextValue,
     }));
   };
 
