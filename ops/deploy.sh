@@ -10,7 +10,7 @@ BRANCH="${BRANCH:-main}"
 SERVICE_NAME="${SERVICE_NAME:-stire-site}"
 NPM_INSTALL_CMD="${NPM_INSTALL_CMD:-ci}"
 NPM_INSTALL_FALLBACK_CMD="${NPM_INSTALL_FALLBACK_CMD:-install}"
-NPM_INSTALL_JOBS="${NPM_INSTALL_JOBS:-2}"
+NPM_INSTALL_JOBS="${NPM_INSTALL_JOBS:-1}"
 
 if [ ! -d "$APP_DIR/.git" ]; then
   echo "[deploy] $APP_DIR does not look like a git repository" >&2
@@ -69,28 +69,67 @@ echo "[deploy] Resetting local branch"
 git reset --hard HEAD
 git checkout -B "$BRANCH" "origin/$BRANCH"
 
-NPM_INSTALL_FLAGS=(--no-audit --no-fund)
-if [ -n "${NPM_EXTRA_INSTALL_FLAGS:-}" ]; then
-  # shellcheck disable=SC2206
-  EXTRA_FLAGS=(${NPM_EXTRA_INSTALL_FLAGS})
-  NPM_INSTALL_FLAGS+=("${EXTRA_FLAGS[@]}")
+DEPLOY_CACHE_DIR="$APP_DIR/.deploy-cache"
+LOCK_HASH_FILE="$DEPLOY_CACHE_DIR/package-lock.hash"
+CURRENT_LOCK_HASH="$(git rev-parse HEAD:package-lock.json 2>/dev/null || true)"
+INSTALL_REASON=""
+NEED_INSTALL=1
+
+if [ "${FORCE_INSTALL_DEPS:-0}" = "1" ]; then
+  INSTALL_REASON="forced via FORCE_INSTALL_DEPS"
+elif [ ! -d node_modules ]; then
+  INSTALL_REASON="node_modules directory missing"
+elif [ -z "$CURRENT_LOCK_HASH" ]; then
+  INSTALL_REASON="package-lock.json not found in repo"
+elif [ ! -f "$LOCK_HASH_FILE" ]; then
+  INSTALL_REASON="no cached package-lock hash"
+else
+  LAST_LOCK_HASH="$(cat "$LOCK_HASH_FILE")"
+  if [ "$LAST_LOCK_HASH" = "$CURRENT_LOCK_HASH" ]; then
+    NEED_INSTALL=0
+  else
+    INSTALL_REASON="package-lock.json changed"
+  fi
 fi
 
-export npm_config_audit=false
-export npm_config_fund=false
-export npm_config_progress=false
-export npm_config_jobs="$NPM_INSTALL_JOBS"
-
-echo "[deploy] Installing npm dependencies (npm $NPM_INSTALL_CMD, jobs=$npm_config_jobs)"
-if ! run_npm_install "$NPM_INSTALL_CMD" "${NPM_INSTALL_FLAGS[@]}"; then
-  rc=$?
-  echo "[deploy] npm $NPM_INSTALL_CMD failed with exit $rc. Retrying with npm $NPM_INSTALL_FALLBACK_CMD (jobs=1)..." >&2
-  rm -rf node_modules
-  export npm_config_jobs=1
-  if ! run_npm_install "$NPM_INSTALL_FALLBACK_CMD" "${NPM_INSTALL_FLAGS[@]}"; then
-    echo "[deploy] npm $NPM_INSTALL_FALLBACK_CMD also failed" >&2
-    exit "$rc"
+if [ "$NEED_INSTALL" -eq 1 ]; then
+  NPM_INSTALL_FLAGS=(--no-audit --no-fund)
+  if [ -n "${NPM_EXTRA_INSTALL_FLAGS:-}" ]; then
+    # shellcheck disable=SC2206
+    EXTRA_FLAGS=(${NPM_EXTRA_INSTALL_FLAGS})
+    NPM_INSTALL_FLAGS+=("${EXTRA_FLAGS[@]}")
   fi
+
+  export npm_config_audit=false
+  export npm_config_fund=false
+  export npm_config_progress=false
+  export npm_config_jobs="$NPM_INSTALL_JOBS"
+
+  if [ -n "$INSTALL_REASON" ]; then
+    echo "[deploy] Installing npm dependencies ($INSTALL_REASON)"
+  else
+    echo "[deploy] Installing npm dependencies"
+  fi
+  echo "[deploy] npm command: npm $NPM_INSTALL_CMD (jobs=$npm_config_jobs)"
+
+  if ! run_npm_install "$NPM_INSTALL_CMD" "${NPM_INSTALL_FLAGS[@]}"; then
+    base_rc=$?
+    echo "[deploy] npm $NPM_INSTALL_CMD failed with exit $base_rc. Retrying with npm $NPM_INSTALL_FALLBACK_CMD (jobs=1)..." >&2
+    rm -rf node_modules
+    export npm_config_jobs=1
+    if ! run_npm_install "$NPM_INSTALL_FALLBACK_CMD" "${NPM_INSTALL_FLAGS[@]}"; then
+      fallback_rc=$?
+      echo "[deploy] npm $NPM_INSTALL_FALLBACK_CMD also failed (exit $fallback_rc)" >&2
+      exit "$fallback_rc"
+    fi
+  fi
+
+  if [ -n "$CURRENT_LOCK_HASH" ]; then
+    mkdir -p "$DEPLOY_CACHE_DIR"
+    printf '%s' "$CURRENT_LOCK_HASH" > "$LOCK_HASH_FILE"
+  fi
+else
+  echo "[deploy] package-lock.json unchanged and node_modules present; skipping npm install (set FORCE_INSTALL_DEPS=1 to override)"
 fi
 
 echo "[deploy] Building Next.js app"

@@ -36,6 +36,7 @@ yarn-error.log*
 # generated content
 data/*.json
 public/sitemap*.xml
+.deploy-cache/
 
 # vercel
 .vercel
