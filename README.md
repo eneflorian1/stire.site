@@ -59,3 +59,4 @@ Pentru resetarea datelor locale, sterge continutul `data/articles.json` si fisie
 Pe fiecare push in `main`, workflow-ul `.github/workflows/deploy.yml` se conecteaza prin SSH, sincronizeaza `.env.production`, ruleaza `ops/deploy.sh` (git pull + `npm ci && npm run build`) si restarteaza serviciul `stire-site`. In cazul in care cheia JSON lipseste, API-ul de indexare nu mai este sarit deoarece secretul este injectat pe server la fiecare deploy.
 
 > Nota: utilizatorul definit in `SSH_USER` trebuie sa poata rula `pm2` si comenzi `sudo systemctl reload nginx` fara parola. Verifica `pm2 status` dupa fiecare deploy; daca serverul a fost restartat, `pm2 resurrect` (automat prin `pm2 startup`) va reporni aplicatia.
+   
