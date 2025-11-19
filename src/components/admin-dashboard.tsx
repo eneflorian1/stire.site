@@ -1286,7 +1286,7 @@ const SMGoogleTab = ({
                 </button>
               )}
             </div>
-            {credentials?.updatedAt && (
+            {credentials?.source === 'stored' && credentials.updatedAt && (
               <p className="text-xs text-slate-400">
                 Ultima actualizare: {new Date(credentials.updatedAt).toLocaleString('ro-RO')}
               </p>
