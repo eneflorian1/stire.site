@@ -27,6 +27,17 @@ const defaultState: GeminiState = {
   logs: [],
 };
 
+const createLogEntry = (
+  message: string,
+  level: GeminiLog['level'] = 'info',
+  createdAt: string = new Date().toISOString()
+): GeminiLog => ({
+  id: randomUUID(),
+  message,
+  level,
+  createdAt,
+});
+
 const normalizeState = (state: Partial<GeminiState>): GeminiState => ({
   apiKey: state.apiKey ?? null,
   status: state.status ?? 'idle',
@@ -54,15 +65,10 @@ export const updateGeminiApiKey = async (apiKey: string) => {
   const state = await getGeminiState();
   state.apiKey = apiKey.trim() || null;
   state.lastError = state.apiKey ? null : defaultState.lastError;
-  state.logs = [
-    {
-      id: randomUUID(),
-      message: state.apiKey ? 'Cheia Gemini a fost actualizata.' : 'Cheia Gemini a fost stearsa.',
-      level: 'info',
-      createdAt: new Date().toISOString(),
-    },
-    ...state.logs,
-  ].slice(0, 100);
+  const message = state.apiKey
+    ? 'Cheia Gemini a fost actualizata.'
+    : 'Cheia Gemini a fost stearsa.';
+  state.logs = [createLogEntry(message), ...state.logs].slice(0, 100);
   return persistState(state);
 };
 
@@ -73,45 +79,25 @@ export const runGeminiAction = async (action: 'start' | 'stop' | 'reset') => {
   if (action === 'start') {
     if (!state.apiKey) {
       state.lastError = defaultState.lastError;
-      state.logs.unshift({
-        id: randomUUID(),
-        message: 'Nu poti porni fara cheia API.',
-        level: 'error',
-        createdAt: now,
-      });
+      state.logs.unshift(createLogEntry('Nu poti porni fara cheia API.', 'error', now));
     } else {
       state.status = 'running';
       state.startedAt = now;
       state.lastError = null;
-      state.logs.unshift({
-        id: randomUUID(),
-        message: 'Gemini a fost pornit.',
-        level: 'info',
-        createdAt: now,
-      });
+      state.logs.unshift(createLogEntry('Gemini a fost pornit.', 'info', now));
     }
   }
 
   if (action === 'stop') {
     state.status = 'stopped';
-    state.logs.unshift({
-      id: randomUUID(),
-      message: 'Gemini a fost oprit.',
-      level: 'info',
-      createdAt: now,
-    });
+    state.logs.unshift(createLogEntry('Gemini a fost oprit.', 'info', now));
   }
 
   if (action === 'reset') {
     state.status = 'idle';
     state.startedAt = null;
     state.lastError = state.apiKey ? null : defaultState.lastError;
-    state.logs.unshift({
-      id: randomUUID(),
-      message: 'Starea Gemini a fost resetata.',
-      level: 'info',
-      createdAt: now,
-    });
+    state.logs.unshift(createLogEntry('Starea Gemini a fost resetata.', 'info', now));
   }
 
   state.logs = state.logs.slice(0, 100);
