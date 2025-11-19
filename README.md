@@ -25,7 +25,7 @@ Aplicatia ruleaza pe [http://localhost:3000](http://localhost:3000).
 ### Variabile de mediu
 
 - `SITE_BASE_URL` – domeniul public pentru URL-uri si sitemap-uri (ex: `https://www.stiri.site`).
-- `GOOGLE_APPLICATION_CREDENTIALS_JSON` – continutul JSON al service account-ului cu access la Indexing API (escape la `\n`).
+- `GOOGLE_APPLICATION_CREDENTIALS_JSON` - continutul JSON al service account-ului cu access la Indexing API (escape la `\n`). Daca nu este prezent in `.env`, poti incarca acelasi JSON direct din dashboard (tab-ul **SMGoogle → JSON**), iar aplicatia il va salva in `data/smgoogle-account.json`.
 - `GEMINI_API_KEY` este stocat encrypted in `data/gemini.json` prin dashboard (nu in env).
 
 ### Flux

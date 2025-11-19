@@ -52,6 +52,11 @@ type SMGoogleLink = {
   createdAt: string;
 };
 
+type SMGoogleCredentialsState =
+  | { source: 'env'; hasValue: true; updatedAt?: string | null }
+  | { source: 'stored'; json: string; updatedAt: string | null }
+  | { source: 'missing' };
+
 type GeminiState = {
   apiKey: string | null;
   status: 'idle' | 'running' | 'stopped';
@@ -182,6 +187,10 @@ const AdminDashboard = () => {
   const [categoryMessage, setCategoryMessage] = useState<string | null>(null);
   const [topicMessage, setTopicMessage] = useState<string | null>(null);
   const [smMessage, setSMMessage] = useState<string | null>(null);
+  const [smCredentials, setSMCredentials] = useState<SMGoogleCredentialsState | null>(null);
+  const [smCredentialsJson, setSMCredentialsJson] = useState('');
+  const [smCredentialsMessage, setSMCredentialsMessage] = useState<string | null>(null);
+  const [isSavingCredentials, setIsSavingCredentials] = useState(false);
   const [geminiMessage, setGeminiMessage] = useState<string | null>(null);
   const [bannerMessage, setBannerMessage] = useState<string | null>(null);
 
@@ -221,6 +230,18 @@ const AdminDashboard = () => {
     setSMLinks(data.links ?? []);
   };
 
+  const fetchSMCredentials = async () => {
+    const response = await fetch('/api/smgoogle/credentials');
+    if (!response.ok) throw new Error('Nu am putut incarca credentialele Google.');
+    const data = await response.json();
+    setSMCredentials(data);
+    if (data?.source === 'stored' && typeof data.json === 'string') {
+      setSMCredentialsJson(data.json);
+    } else {
+      setSMCredentialsJson('');
+    }
+  };
+
   const fetchGemini = async () => {
     const response = await fetch('/api/gemini');
     if (!response.ok) throw new Error('Nu am putut incarca starea Gemini.');
@@ -250,6 +271,7 @@ const AdminDashboard = () => {
       fetchSMGoogle(),
       fetchGemini(),
       fetchBanner(),
+      fetchSMCredentials(),
     ]).catch((error) => console.error(error));
   }, []);
 
@@ -431,6 +453,57 @@ const AdminDashboard = () => {
     }
   };
 
+  const submitSMCredentials = async () => {
+    if (!smCredentialsJson.trim()) {
+      setSMCredentialsMessage('Introdu JSON-ul complet al service account-ului.');
+      return;
+    }
+
+    setIsSavingCredentials(true);
+    setSMCredentialsMessage(null);
+    try {
+      const response = await fetch('/api/smgoogle/credentials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ json: smCredentialsJson }),
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error ?? 'Nu am putut salva credentialele.');
+      }
+      setSMCredentials(payload);
+      setSMCredentialsJson(payload.json ?? '');
+      setSMCredentialsMessage('Credentialele au fost salvate.');
+    } catch (error) {
+      setSMCredentialsMessage(
+        error instanceof Error ? error.message : 'Eroare la salvarea credentialelor.'
+      );
+    } finally {
+      setIsSavingCredentials(false);
+    }
+  };
+
+  const deleteSMCredentials = async () => {
+    setIsSavingCredentials(true);
+    setSMCredentialsMessage(null);
+    try {
+      const response = await fetch('/api/smgoogle/credentials', { method: 'DELETE' });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error ?? 'Nu am putut sterge credentialele.');
+      }
+      setSMCredentials(payload);
+      setSMCredentialsJson('');
+      setSMCredentialsMessage('Credentialele au fost sterse.');
+    } catch (error) {
+      setSMCredentialsMessage(
+        error instanceof Error ? error.message : 'Eroare la stergerea credentialelor.'
+      );
+    } finally {
+      setIsSavingCredentials(false);
+    }
+  };
+
   const updateGeminiKey = async () => {
     setIsUpdatingGemini(true);
     setGeminiMessage(null);
@@ -562,6 +635,13 @@ const AdminDashboard = () => {
             logs={smLogs}
             message={smMessage}
             isSubmitting={isSubmittingSM}
+            credentials={smCredentials}
+            credentialsJson={smCredentialsJson}
+            onCredentialsJsonChange={setSMCredentialsJson}
+            onSaveCredentials={submitSMCredentials}
+            onDeleteCredentials={deleteSMCredentials}
+            credentialsMessage={smCredentialsMessage}
+            isSavingCredentials={isSavingCredentials}
           />
         );
       case 'gemini':
@@ -1048,6 +1128,13 @@ type SMGoogleTabProps = {
   logs: SMGoogleLog[];
   message: string | null;
   isSubmitting: boolean;
+  credentials: SMGoogleCredentialsState | null;
+  credentialsJson: string;
+  onCredentialsJsonChange: (value: string) => void;
+  onSaveCredentials: () => Promise<void>;
+  onDeleteCredentials: () => Promise<void>;
+  credentialsMessage: string | null;
+  isSavingCredentials: boolean;
 };
 
 const SMGoogleTab = ({
@@ -1060,6 +1147,13 @@ const SMGoogleTab = ({
   logs,
   message,
   isSubmitting,
+  credentials,
+  credentialsJson,
+  onCredentialsJsonChange,
+  onSaveCredentials,
+  onDeleteCredentials,
+  credentialsMessage,
+  isSavingCredentials,
 }: SMGoogleTabProps) => (
   <div className={sectionCard}>
     <div className="flex flex-wrap items-center justify-between gap-4">
@@ -1153,14 +1247,63 @@ const SMGoogleTab = ({
 
     {activeTab === 'json' && (
       <div className="mt-6 space-y-4">
-        <p className="text-sm text-slate-600">
-          Introdu structura JSON a service account-ului in variabila{' '}
+        {credentials?.source === 'env' ? (
+          <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-800">
+            Credentialele sunt preluate din mediul serverului (.env) si nu pot fi modificate din
+            dashboard. Actualizeaza secretul `GOOGLE_APPLICATION_CREDENTIALS_JSON` pentru a schimba
+            acest comportament.
+          </div>
+        ) : (
+          <>
+            <p className="text-sm text-slate-600">
+              Introdu structura JSON a service account-ului direct din dashboard. Datele sunt
+              criptate local in fisierul <code>data/smgoogle-account.json</code> si folosite doar
+              pentru Google Indexing API.
+            </p>
+            <textarea
+              className="min-h-[200px] w-full rounded-2xl border border-slate-200 bg-slate-50 p-4 font-mono text-xs text-slate-900 focus:border-slate-400 focus:outline-none"
+              placeholder="Pasteaza JSON-ul complet..."
+              value={credentialsJson}
+              onChange={(event) => onCredentialsJsonChange(event.target.value)}
+            />
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                className={buttonPrimary}
+                onClick={onSaveCredentials}
+                disabled={isSavingCredentials}
+              >
+                {isSavingCredentials ? 'Salvam...' : 'Salveaza credentialele'}
+              </button>
+              {credentials?.source === 'stored' && (
+                <button
+                  type="button"
+                  className={buttonGhost}
+                  onClick={onDeleteCredentials}
+                  disabled={isSavingCredentials}
+                >
+                  Sterge credentialele
+                </button>
+              )}
+            </div>
+            {credentials?.updatedAt && (
+              <p className="text-xs text-slate-400">
+                Ultima actualizare: {new Date(credentials.updatedAt).toLocaleString('ro-RO')}
+              </p>
+            )}
+          </>
+        )}
+        <p className="text-xs text-slate-500">
+          Daca preferi varianta clasica, poti seta variabila{' '}
           <code className="rounded bg-slate-100 px-2 py-1 text-xs">
             GOOGLE_APPLICATION_CREDENTIALS_JSON
           </code>{' '}
-          din mediul .env.
+          in .env și dashboard-ul va deveni read-only.
         </p>
         <pre className="rounded-2xl bg-slate-900 p-4 text-xs text-white">{GOOGLE_JSON_SAMPLE}</pre>
+        {credentialsMessage && (
+          <p className="rounded-xl bg-slate-50 p-3 text-sm text-slate-600">{credentialsMessage}</p>
+        )}
       </div>
     )}
 
