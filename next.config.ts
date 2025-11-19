@@ -1,8 +1,11 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  webpack: (config, { isServer, dev }) => {
-    if (isServer && dev) {
+  experimental: {
+    serverSourceMaps: false,
+  },
+  webpack: (config, { dev }) => {
+    if (dev) {
       config.devtool = false;
     }
     return config;

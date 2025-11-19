@@ -12,6 +12,7 @@ const ArticleCard = ({ article, variant = 'default' }: Props) => {
     hour: '2-digit',
     minute: '2-digit',
   });
+  const href = `/Articol/${article.categorySlug}/${article.slug}`;
   const imageBackground = article.imageUrl
     ? `url(${article.imageUrl})`
     : 'linear-gradient(135deg, #ede9fe, #eef2ff)';
@@ -19,21 +20,22 @@ const ArticleCard = ({ article, variant = 'default' }: Props) => {
   if (variant === 'featured') {
     return (
       <Link
-        href={article.url}
-        className="flex h-full flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1"
+        href={href}
+        className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1"
       >
-        <div
-          className="h-64 w-full bg-cover bg-center"
-          style={{ backgroundImage: imageBackground }}
-          aria-hidden
-        />
-        <div className="flex flex-1 flex-col gap-3 p-6">
-          <span className="inline-flex w-fit items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+        <div className="relative h-72 w-full overflow-hidden bg-slate-100">
+          <div
+            className="absolute inset-0 bg-cover bg-center transition duration-500 group-hover:scale-105"
+            style={{ backgroundImage: imageBackground }}
+            aria-hidden
+          />
+          <span className="absolute right-4 top-4 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-slate-700 shadow">
             {article.category}
           </span>
-          <h3 className="text-xl font-semibold text-slate-900">{article.title}</h3>
-          <p className="text-sm text-slate-600">{article.summary}</p>
-          <span className="text-xs text-slate-400">{formattedDate}</span>
+        </div>
+        <div className="flex flex-1 flex-col gap-3 p-6">
+          <h3 className="text-2xl font-semibold text-slate-900">{article.title}</h3>
+          <span className="text-sm text-slate-500">{formattedDate}</span>
         </div>
       </Link>
     );
@@ -42,15 +44,18 @@ const ArticleCard = ({ article, variant = 'default' }: Props) => {
   if (variant === 'compact') {
     return (
       <Link
-        href={article.url}
-        className="flex flex-col gap-3 rounded-2xl border border-slate-100 bg-white p-4 text-sm text-slate-600 shadow-sm transition hover:-translate-y-1"
+        href={href}
+        className="relative flex flex-col gap-3 rounded-2xl border border-slate-100 bg-white p-4 text-sm text-slate-600 shadow-sm transition hover:-translate-y-1"
       >
+        <span className="absolute right-4 top-4 rounded-full bg-white px-2 py-0.5 text-xs font-semibold text-slate-600 shadow">
+          {article.category}
+        </span>
         <div
-          className="h-24 w-full rounded-2xl bg-cover bg-center"
+          className="h-28 w-full rounded-2xl bg-cover bg-center"
           style={{ backgroundImage: imageBackground }}
           aria-hidden
         />
-        <p className="line-clamp-3 text-slate-900">{article.title}</p>
+        <p className="line-clamp-3 text-base font-semibold text-slate-900">{article.title}</p>
         <span className="text-xs text-slate-400">{formattedDate}</span>
       </Link>
     );
@@ -58,17 +63,14 @@ const ArticleCard = ({ article, variant = 'default' }: Props) => {
 
   return (
     <Link
-      href={article.url}
-      className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-slate-700 shadow-sm transition hover:-translate-y-1"
+      href={href}
+      className="relative flex h-full flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 pt-8 text-slate-700 shadow-sm transition hover:-translate-y-1"
     >
-      <div className="flex items-center gap-2 text-xs text-slate-400">
-        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-600">
-          {article.category}
-        </span>
-        {formattedDate}
-      </div>
+      <span className="absolute right-4 top-4 rounded-full bg-slate-900/90 px-2 py-0.5 text-xs font-semibold text-white">
+        {article.category}
+      </span>
       <h3 className="text-lg font-semibold text-slate-900">{article.title}</h3>
-      <p className="text-sm text-slate-600 line-clamp-3">{article.summary}</p>
+      <span className="text-xs text-slate-500">{formattedDate}</span>
     </Link>
   );
 };

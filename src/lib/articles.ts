@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
 import { promises as fs } from 'fs';
 import path from 'path';
-import { ensureCategoryRecord } from './categories';
+import { ensureCategoryRecord, getCategories } from './categories';
 import { encodeXml, slugify } from './strings';
 
 export type ArticleStatus = 'draft' | 'published';
@@ -16,20 +16,23 @@ export type Article = {
   categorySlug: string;
   status: ArticleStatus;
   imageUrl?: string;
+  imageSourceUrl?: string;
   publishedAt: string;
   createdAt: string;
   updatedAt: string;
   url: string;
+  hashtags?: string;
 };
 
 export type ArticleInput = {
   title: string;
-  summary: string;
   content: string;
   category: string;
   imageUrl?: string;
+  imageSourceUrl?: string;
   status?: ArticleStatus;
   publishedAt?: string;
+  hashtags?: string;
 };
 
 const DATA_PATH = path.join(process.cwd(), 'data', 'articles.json');
@@ -73,10 +76,12 @@ const normalizeExistingArticle = (article: Partial<Article>): Article | null => 
     categorySlug,
     status: article.status === 'draft' ? 'draft' : 'published',
     imageUrl: article.imageUrl,
+    imageSourceUrl: article.imageSourceUrl,
     publishedAt: article.publishedAt ?? now,
     createdAt: article.createdAt ?? now,
     updatedAt: article.updatedAt ?? now,
     url: article.url ?? buildArticleUrl(categorySlug, slug),
+    hashtags: article.hashtags?.trim() || undefined,
   };
 };
 
@@ -103,6 +108,59 @@ const writeArticlesToDisk = async (articles: Article[]) => {
 
 const buildArticleUrl = (categorySlug: string, articleSlug: string) =>
   `${BASE_URL}/Articol/${categorySlug}/${articleSlug}`;
+
+const similarityScore = (a: string, b: string) => {
+  const cleanA = a.toLowerCase();
+  const cleanB = b.toLowerCase();
+  if (!cleanA || !cleanB) {
+    return 0;
+  }
+  if (cleanA === cleanB) {
+    return 1;
+  }
+  const tokens = cleanB.split(/\s+/).filter(Boolean);
+  let hits = 0;
+  for (const token of tokens) {
+    if (cleanA.includes(token)) {
+      hits += token.length;
+    }
+  }
+  return hits / cleanA.length;
+};
+
+const mapCategoryToExisting = async (candidate: string) => {
+  const normalized = candidate.trim();
+  if (!normalized) return candidate;
+
+  const categories = await getCategories();
+  if (categories.length === 0) {
+    return normalized;
+  }
+
+  const lower = normalized.toLowerCase();
+  const exact = categories.find((category) => category.name.toLowerCase() === lower);
+  if (exact) {
+    return exact.name;
+  }
+
+  const slugMatch = categories.find((category) => category.slug === slugify(normalized));
+  if (slugMatch) {
+    return slugMatch.name;
+  }
+
+  const ranked = categories
+    .map((category) => ({
+      name: category.name,
+      score: similarityScore(category.name, normalized),
+    }))
+    .sort((a, b) => b.score - a.score);
+
+  if (ranked[0] && ranked[0].score >= 0.4) {
+    return ranked[0].name;
+  }
+
+  return categories[0].name;
+};
 
 const writeXml = async (filePath: string, xml: string) => {
   await fs.mkdir(path.dirname(filePath), { recursive: true });
@@ -187,7 +245,42 @@ export const getArticles = async () => {
   );
 };
 
-export const createArticle = async (input: ArticleInput) => {
+export const deleteArticlesByIds = async (ids: string[]) => {
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return { deleted: 0, articles: await getArticles() };
+  }
+  const current = await readArticlesFromDisk();
+  const idSet = new Set(ids);
+  const remaining = current.filter((article) => !idSet.has(article.id));
+  const deleted = current.length - remaining.length;
+  if (deleted === 0) {
+    return { deleted: 0, articles: current };
+  }
+  await writeArticlesToDisk(remaining);
+  await rebuildSitemaps(remaining);
+  return { deleted, articles: remaining };
+};
+
+export const getArticleBySlugs = async (categorySlug: string, slug: string) => {
+  const articles = await readArticlesFromDisk();
+  const normalizedCategory = (categorySlug ?? '').toLowerCase();
+  return (
+    articles.find((article) => {
+      const storedCategorySlug =
+        article.categorySlug ||
+        (article.category ? slugify(article.category) : '') ||
+        'general';
+      return (
+        storedCategorySlug.toLowerCase() === normalizedCategory && article.slug === slug
+      );
+    }) ?? null
+  );
+};
+
+export const createArticle = async (
+  input: ArticleInput,
+  options?: { matchExistingCategory?: boolean }
+) => {
   const articles = await readArticlesFromDisk();
   const baseSlug = slugify(input.title || 'articol') || 'articol';
   let slug = baseSlug;
@@ -197,7 +290,10 @@ export const createArticle = async (input: ArticleInput) => {
   }
 
   const rawCategory = input.category?.trim() ?? '';
-  const category = rawCategory || 'general';
+  let category = rawCategory || 'general';
+  if (options?.matchExistingCategory) {
+    category = await mapCategoryToExisting(category);
+  }
   const categorySlug = slugify(category) || 'general';
 
   const now = new Date().toISOString();
@@ -206,16 +302,18 @@ export const createArticle = async (input: ArticleInput) => {
     id: randomUUID(),
     title: input.title.trim(),
     slug,
-    summary: input.summary.trim(),
+    summary: input.content.trim().slice(0, 300),
     content: input.content.trim(),
     category,
     categorySlug,
     status: input.status ?? 'published',
     imageUrl: input.imageUrl?.trim() || undefined,
+    imageSourceUrl: input.imageSourceUrl?.trim() || undefined,
     publishedAt,
     createdAt: now,
     updatedAt: now,
     url: buildArticleUrl(categorySlug, slug),
+    hashtags: input.hashtags?.trim() || undefined,
   };
 
   const updatedArticles = [article, ...articles];

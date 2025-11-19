@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createArticle, getArticles } from '@/lib/articles';
+import { createArticle, deleteArticlesByIds, getArticles } from '@/lib/articles';
 import { submitUrlToGoogle } from '@/lib/google-indexing';
 import { logSMGoogleSubmission } from '@/lib/smgoogle';
 
@@ -20,30 +20,37 @@ export async function POST(request: NextRequest) {
   try {
     const payload = await request.json();
     const trimmedTitle = typeof payload?.title === 'string' ? payload.title.trim() : '';
-    const trimmedSummary = typeof payload?.summary === 'string' ? payload.summary.trim() : '';
     const trimmedContent = typeof payload?.content === 'string' ? payload.content.trim() : '';
     const trimmedCategory = typeof payload?.category === 'string' ? payload.category.trim() : '';
     const imageUrl =
       typeof payload?.imageUrl === 'string' && payload.imageUrl.trim().length > 0
         ? payload.imageUrl.trim()
         : undefined;
+    const rawHashtags = Array.isArray(payload?.hashtags)
+      ? payload.hashtags.join(', ')
+      : typeof payload?.hashtags === 'string'
+      ? payload.hashtags
+      : '';
 
-    if (!trimmedTitle || !trimmedSummary || !trimmedContent || !trimmedCategory) {
+    if (!trimmedTitle || !trimmedContent || !trimmedCategory) {
       return NextResponse.json(
-        { error: 'Titlul, descrierea, continutul si categoria sunt obligatorii.' },
+        { error: 'Titlul, continutul si categoria sunt obligatorii.' },
         { status: 400 }
       );
     }
 
-    const article = await createArticle({
-      title: trimmedTitle,
-      summary: trimmedSummary,
-      content: trimmedContent,
-      category: trimmedCategory,
-      imageUrl,
-      status: payload.status === 'draft' ? 'draft' : 'published',
-      publishedAt: payload.publishedAt,
-    });
+    const article = await createArticle(
+      {
+        title: trimmedTitle,
+        content: trimmedContent,
+        category: trimmedCategory,
+        imageUrl,
+        status: payload.status === 'draft' ? 'draft' : 'published',
+        publishedAt: payload.publishedAt,
+        hashtags: rawHashtags?.trim(),
+      },
+      { matchExistingCategory: Boolean(payload?.autoCategorize) }
+    );
 
     const submission = await submitUrlToGoogle(article.url);
     await logSMGoogleSubmission(article.url, submission, 'auto');
@@ -59,6 +66,24 @@ export async function POST(request: NextRequest) {
     console.error('POST /api/articles failed', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Eroare neasteptata.' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const payload = await request.json().catch(() => null);
+    const ids: string[] = Array.isArray(payload?.ids) ? payload.ids : [];
+    if (!ids.length) {
+      return NextResponse.json({ error: 'Nu s-au furnizat articole de sters.' }, { status: 400 });
+    }
+    const { deleted, articles } = await deleteArticlesByIds(ids);
+    return NextResponse.json({ deleted, articles });
+  } catch (error) {
+    console.error('DELETE /api/articles failed', error);
+    return NextResponse.json(
+      { error: 'Nu am putut sterge articolele.' },
       { status: 500 }
     );
   }

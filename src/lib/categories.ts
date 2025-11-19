@@ -7,7 +7,6 @@ export type Category = {
   id: string;
   name: string;
   slug: string;
-  description?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -25,7 +24,6 @@ const normalizeCategory = (category: Partial<Category>): Category | null => {
     id: category.id ?? randomUUID(),
     name: normalizedName,
     slug: slug || slugify(normalizedName) || normalizedName,
-    description: category.description?.trim(),
     createdAt: category.createdAt ?? now,
     updatedAt: category.updatedAt ?? now,
   };
@@ -39,7 +37,7 @@ export const getCategories = async (): Promise<Category[]> => {
     .sort((a, b) => a.name.localeCompare(b.name));
 };
 
-export const createCategory = async (input: { name: string; description?: string }) => {
+export const createCategory = async (input: { name: string }) => {
   const categories = await getCategories();
   const normalizedName = input.name.trim();
   const slug = slugify(normalizedName) || normalizedName;
@@ -53,7 +51,6 @@ export const createCategory = async (input: { name: string; description?: string
     id: randomUUID(),
     name: normalizedName,
     slug,
-    description: input.description?.trim(),
     createdAt: now,
     updatedAt: now,
   };
@@ -73,4 +70,19 @@ export const ensureCategoryRecord = async (name: string) => {
   }
 
   return createCategory({ name: normalizedName });
+};
+
+export const deleteCategoriesByIds = async (ids: string[]) => {
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return { deleted: 0, categories: await getCategories() };
+  }
+  const all = await getCategories();
+  const idSet = new Set(ids);
+  const remaining = all.filter((category) => !idSet.has(category.id));
+  const deleted = all.length - remaining.length;
+  if (deleted === 0) {
+    return { deleted: 0, categories: all };
+  }
+  await writeJsonFile(DATA_PATH, remaining);
+  return { deleted, categories: remaining };
 };

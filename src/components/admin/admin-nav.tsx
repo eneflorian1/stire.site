@@ -1,25 +1,49 @@
-"use client";
 'use client';
 
 import { useState } from 'react';
 import { Menu } from 'lucide-react';
 
-const adminAnchors = [
-  { href: '#admin-dashboard', label: 'Dashboard' },
-  { href: '#admin-create-article', label: 'Creeaza articol' },
+type AdminTab = 'articole' | 'categorii' | 'topicuri' | 'smgoogle' | 'gemini' | 'anunturi';
+
+const adminTabs: { id: AdminTab; label: string }[] = [
+  { id: 'articole', label: 'Articole' },
+  { id: 'categorii', label: 'Categorii' },
+  { id: 'topicuri', label: 'Topicuri' },
+  { id: 'smgoogle', label: 'SMGoogle' },
+  { id: 'gemini', label: 'Gemini' },
+  { id: 'anunturi', label: 'Anunturi' },
 ];
 
 const AdminNav = () => {
   const [open, setOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<AdminTab>('articole');
+
+  const changeTab = (tabId: AdminTab) => {
+    setActiveTab(tabId);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent<AdminTab>('admin-tab-change', { detail: tabId }));
+    }
+  };
   return (
     <div className="border-b border-slate-200 bg-white">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 md:px-6">
-        <p className="text-sm font-semibold text-slate-700">Navigatie admin</p>
-        <nav className="hidden gap-4 text-sm text-slate-600 md:flex">
-          {adminAnchors.map((anchor) => (
-            <a key={anchor.href} href={anchor.href} className="hover:text-slate-900">
-              {anchor.label}
-            </a>
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 md:px-6">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+          Navigatie admin
+        </p>
+        <nav className="hidden gap-2 text-xs font-medium text-slate-600 md:flex">
+          {adminTabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => changeTab(tab.id)}
+              className={`rounded-full px-3 py-1 transition ${
+                activeTab === tab.id
+                  ? 'bg-slate-900 text-white shadow-sm'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+              }`}
+            >
+              {tab.label}
+            </button>
           ))}
         </nav>
         <button
@@ -34,15 +58,18 @@ const AdminNav = () => {
       {open && (
         <div className="border-t border-slate-100 bg-white px-4 py-3 text-sm text-slate-600 md:hidden">
           <div className="flex flex-col gap-2">
-            {adminAnchors.map((anchor) => (
-              <a
-                key={anchor.href}
-                href={anchor.href}
-                className="rounded-2xl border border-slate-100 px-4 py-2 hover:border-slate-200"
-                onClick={() => setOpen(false)}
+            {adminTabs.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                className="rounded-2xl border border-slate-100 px-3 py-2 text-left text-sm hover:border-slate-200"
+                onClick={() => {
+                  changeTab(tab.id);
+                  setOpen(false);
+                }}
               >
-                {anchor.label}
-              </a>
+                {tab.label}
+              </button>
             ))}
           </div>
         </div>

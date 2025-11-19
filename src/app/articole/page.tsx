@@ -6,14 +6,25 @@ import { getArticles } from '@/lib/articles';
 import { getCategories } from '@/lib/categories';
 
 type Props = {
-  searchParams?: {
-    categorie?: string;
-  };
+  searchParams: Promise<{
+    [key: string]: string | string[] | undefined;
+  }>;
 };
 
 export default async function ArticolePage({ searchParams }: Props) {
   const [articles, categories] = await Promise.all([getArticles(), getCategories()]);
-  const initialCategory = searchParams?.categorie ?? 'all';
+  const resolvedSearchParams = await searchParams;
+  let initialCategory = 'all';
+
+  const rawCategorie = resolvedSearchParams?.categorie;
+
+  if (Array.isArray(rawCategorie)) {
+    if (typeof rawCategorie[0] === 'string' && rawCategorie[0]) {
+      initialCategory = rawCategorie[0];
+    }
+  } else if (typeof rawCategorie === 'string' && rawCategorie) {
+    initialCategory = rawCategorie;
+  }
   return (
     <div className="min-h-screen bg-slate-50 pb-24">
       <SiteHeader />

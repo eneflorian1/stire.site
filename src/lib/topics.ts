@@ -12,8 +12,7 @@ export type Topic = {
 };
 
 const DATA_PATH = path.join(process.cwd(), 'data', 'topics.json');
-const GOOGLE_TRENDS_API =
-  'https://trends.google.com/trends/api/dailytrends?hl=en-US&tz=-180&geo=RO';
+const GOOGLE_TRENDS_BATCH_URL = 'https://trends.google.com/_/TrendsUi/data/batchexecute';
 
 const normalizeTopic = (topic: Partial<Topic>): Topic | null => {
   if (!topic.label) return null;
@@ -46,6 +45,21 @@ export const getTopics = async () => {
   );
 };
 
+export const deleteTopicsByIds = async (ids: string[]) => {
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return { deleted: 0, topics: await getTopics() };
+  }
+  const current = await readTopics();
+  const idSet = new Set(ids);
+  const remaining = current.filter((topic) => !idSet.has(topic.id));
+  const deleted = current.length - remaining.length;
+  if (deleted === 0) {
+    return { deleted: 0, topics: current };
+  }
+  await writeTopics(remaining);
+  return { deleted, topics: remaining };
+};
+
 export const addManualTopic = async (label: string) => {
   const topics = await getTopics();
   if (topics.some((topic) => topic.label.toLowerCase() === label.toLowerCase())) {
@@ -63,45 +77,140 @@ export const addManualTopic = async (label: string) => {
   return topic;
 };
 
-export const importTrendTopics = async () => {
-  const response = await fetch(GOOGLE_TRENDS_API, {
-    headers: {
-      'User-Agent':
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118 Safari/537.36',
-    },
-    cache: 'no-store',
-  });
-  const payload = await response.text();
-  const normalized = payload.replace(")]}',", '').trim();
-  const json = JSON.parse(normalized);
-  const trendDays = json.default?.trendingSearchesDays ?? [];
-  const labels: string[] = [];
+const decodeHtmlEntities = (value: string) =>
+  value
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
 
-  for (const day of trendDays) {
-    const searches = day.trendingSearches ?? [];
-    for (const search of searches) {
-      if (search?.title?.query) {
-        labels.push(search.title.query);
+/**
+ * Inspirat din implementarea Python `TrendCollector.search_trends`.
+ * Folosește endpoint-ul intern Google Trends pentru a obține căutările populare.
+ */
+const fetchGoogleTrends = async (country = 'RO', retries = 3, retryDelayMs = 2000) => {
+  const geo = country.toUpperCase().slice(0, 2);
+
+  // Payload copiat din exemplul Python: f.req=[[["i0OFE","[null,null,\"{geo}\",0,null,48]"]]]
+  const payload = `f.req=[[["i0OFE","[null,null,\\"${geo}\\",0,null,48]"]]]`;
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+    'User-Agent':
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  };
+
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= retries; attempt += 1) {
+    try {
+      const response = await fetch(GOOGLE_TRENDS_BATCH_URL, {
+        method: 'POST',
+        headers,
+        body: payload,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Google Trends returned ${response.status}`);
+      }
+
+      const raw = await response.text();
+
+      // Răspunsul este un JSON foarte „împachetat”; căutăm prima linie care începe cu '[',
+      // apoi decodăm de două ori, similar cu exemplul Python.
+      for (const line of raw.split('\n')) {
+        if (!line.trim().startsWith('[')) continue;
+
+        const data = JSON.parse(line);
+        // data[0][2] este un string JSON care conține efectiv lista de trenduri
+        const trendsJson = JSON.parse(data[0][2]);
+        const items = trendsJson[1] as unknown[];
+
+        const trends = (items ?? [])
+          .map((item: any) => (Array.isArray(item) ? item[0] : null))
+          .filter((name: unknown): name is string => typeof name === 'string' && name.trim().length > 0)
+          .map((name) => decodeHtmlEntities(name.trim()));
+
+        // Eliminăm duplicatele păstrând ordinea aproximativă
+        const seen = new Set<string>();
+        const uniq: string[] = [];
+        for (const t of trends) {
+          if (!seen.has(t)) {
+            seen.add(t);
+            uniq.push(t);
+          }
+        }
+
+        if (uniq.length === 0) {
+          throw new Error('Nu s-au găsit trenduri în răspunsul Google Trends.');
+        }
+
+        return uniq;
+      }
+
+      throw new Error('Nu s-a putut interpreta răspunsul Google Trends.');
+    } catch (error) {
+      // Păstrăm ultima eroare pentru a o raporta dacă toate încercările eșuează
+      lastError = error;
+      if (attempt < retries) {
+        await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
       }
     }
   }
 
-  const topics = await getTopics();
-  const newTopics: Topic[] = [];
-  for (const label of labels) {
-    if (topics.some((topic) => topic.label.toLowerCase() === label.toLowerCase())) {
-      continue;
-    }
-    const topic: Topic = {
+  // Dacă am ajuns aici, toate încercările au eșuat
+  console.error('Eroare la importul Google Trends:', lastError);
+  throw new Error('Nu s-au putut obține trenduri Google. Încearcă din nou mai târziu.');
+};
+
+/**
+ * Importă trendurile Google ca topicuri cu `source: 'trend'`.
+ *
+ * Inspirat de funcția Python `import_google_trends`:
+ * - trendurile sunt regenerate de la zero
+ * - topicurile manuale (`source: 'manual'`) rămân neatinse
+ */
+export const importTrendTopics = async (country = 'RO') => {
+  const titles = await fetchGoogleTrends(country);
+
+  if (!titles.length) {
+    throw new Error('Nu am găsit topicuri Google Trends.');
+  }
+
+  // Citim toate topicurile existente
+  const allTopics = await readTopics();
+
+  // Păstrăm doar topicurile manuale; trendurile vechi le vom înlocui
+  const manualTopics = allTopics.filter((topic) => topic.source !== 'trend');
+
+  const now = new Date().toISOString();
+  const newTrendTopics: Topic[] = [];
+
+  for (const rawLabel of titles) {
+    const label = rawLabel?.trim();
+    if (!label) continue;
+
+    // Evităm duplicatele față de manuale și față de trendurile din același import
+    const existsInManual = manualTopics.some(
+      (topic) => topic.label.toLowerCase() === label.toLowerCase()
+    );
+    const existsInBatch = newTrendTopics.some(
+      (topic) => topic.label.toLowerCase() === label.toLowerCase()
+    );
+    if (existsInManual || existsInBatch) continue;
+
+    newTrendTopics.push({
       id: randomUUID(),
       label,
       source: 'trend',
-      createdAt: new Date().toISOString(),
-    };
-    topics.unshift(topic);
-    newTopics.push(topic);
+      createdAt: now,
+    });
   }
 
-  await writeTopics(topics);
-  return newTopics;
+  // Îmbinăm: noile trenduri + manualele existente
+  const updatedTopics = [...newTrendTopics, ...manualTopics];
+  await writeTopics(updatedTopics);
+
+  return newTrendTopics;
 };
