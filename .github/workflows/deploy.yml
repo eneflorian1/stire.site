@@ -78,4 +78,4 @@ jobs:
           SITE_BASE_URL="$SITE_BASE_URL" \
           GOOGLE_APPLICATION_CREDENTIALS_JSON="$GOOGLE_APPLICATION_CREDENTIALS_JSON" \
           bash ./ops/deploy.sh "$PROJECT_DIR"
-EOF
+          EOF
