@@ -189,13 +189,36 @@ const rebuildSitemaps = async (articles: Article[]) => {
   const sitemapIndex = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <sitemap>\n    <loc>${BASE_URL}/sitemap-news.xml</loc>\n  </sitemap>\n  <sitemap>\n    <loc>${BASE_URL}/sitemap-articles-latest.xml</loc>\n  </sitemap>\n  <sitemap>\n    <loc>${BASE_URL}/sitemap-categories.xml</loc>\n  </sitemap>\n  <sitemap>\n    <loc>${BASE_URL}/sitemap-images.xml</loc>\n  </sitemap>\n</sitemapindex>\n`;
   await writeXml(SITEMAP_FILES.index, sitemapIndex);
 
+  // Google News sitemap - ultimele articole (max ~50, oricum Google ia doar ~48h în calcul)
   const latestArticles = published.slice(0, 50);
-  const latestEntries = latestArticles.map((article) => ({
-    loc: article.url,
-    lastmod: article.updatedAt ?? article.publishedAt,
-    priority: '0.9',
-  }));
-  await writeXml(SITEMAP_FILES.news, buildUrlset(latestEntries));
+  const newsItems = latestArticles
+    .map((article) => {
+      const publicationDate = article.publishedAt || article.createdAt || article.updatedAt;
+      if (!publicationDate) {
+        return '';
+      }
+      return `  <url>
+    <loc>${encodeXml(article.url)}</loc>
+    <news:news>
+      <news:publication>
+        <news:name>stire.site</news:name>
+        <news:language>ro</news:language>
+      </news:publication>
+      <news:publication_date>${publicationDate}</news:publication_date>
+      <news:title>${encodeXml(article.title)}</news:title>
+    </news:news>
+  </url>`;
+    })
+    .filter(Boolean)
+    .join('\n');
+
+  const newsSitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
+${newsItems}
+</urlset>
+`;
+  await writeXml(SITEMAP_FILES.news, newsSitemapXml);
 
   const allEntries = published.map((article) => ({
     loc: article.url,

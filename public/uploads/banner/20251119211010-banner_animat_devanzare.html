@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body {
+    margin: 0;
+    background: linear-gradient(90deg, #6466f1, #7a5cf0);
+    width: 1050px;
+    height: 190px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .text {
+    font-family: 'Poppins', sans-serif;
+    font-size: 58px;
+    font-weight: 700;
+    color: white;
+    display: flex;
+    align-items: baseline;
+    animation: slideIn 3s ease-in-out infinite alternate;
+  }
+
+  .text span {
+    font-size: 18px;
+    margin-left: 5px;
+    position: relative;
+    top: 2px;
+    animation: fade 3s ease-in-out infinite alternate;
+  }
+
+  @keyframes slideIn {
+    0% { transform: translateX(-50px); opacity: 0.5; }
+    50% { transform: translateX(0); opacity: 1; }
+    100% { transform: translateX(50px); opacity: 0.8; }
+  }
+
+  @keyframes fade {
+    0% { opacity: 0; }
+    50% { opacity: 1; }
+    100% { opacity: 0.5; }
+  }
+</style>
+</head>
+<body>
+  <div class="text">de-Vanzare<span>.ro</span></div>
+</body>
+</html>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import type { BannerSettings } from '@/lib/banner';
 import { buttonPrimary, inputStyles, labelStyles, sectionCard } from '../tab-styles';
 
@@ -16,6 +16,7 @@ const BannerTab = () => {
   const [form, setForm] = useState(emptyForm);
   const [message, setMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const fetchBanner = useCallback(async () => {
     const response = await fetch('/api/banner');
@@ -55,11 +56,26 @@ const BannerTab = () => {
     setIsSaving(true);
     setMessage(null);
     try {
-      const response = await fetch('/api/banner', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      });
+      const file = fileInputRef.current?.files?.[0];
+      let response: Response;
+
+      if (file) {
+        const data = new FormData();
+        data.append('title', form.title);
+        data.append('notes', form.notes);
+        data.append('animated', String(form.animated));
+        data.append('file', file);
+        response = await fetch('/api/banner', {
+          method: 'POST',
+          body: data,
+        });
+      } else {
+        response = await fetch('/api/banner', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(form),
+        });
+      }
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error ?? 'Nu am putut salva bannerul.');
       setSettings(payload.banner);
@@ -75,7 +91,8 @@ const BannerTab = () => {
     <form onSubmit={submitBanner} className={sectionCard}>
       <h2 className="text-lg font-semibold text-slate-900">Gestionare anunturi</h2>
       <p className="text-sm text-slate-500">
-        Bannerul principal afisat pe homepage in zona de reclama.
+        Bannerul principal afisat pe homepage in zona de reclama. Poti folosi fie un URL extern,
+        fie poti incarca o imagine/GIF din calculator.
       </p>
       <div className="mt-6 space-y-4">
         <div>
@@ -105,6 +122,22 @@ const BannerTab = () => {
             required
             placeholder="https://..."
           />
+        </div>
+        <div>
+          <label className={labelStyles} htmlFor="banner-file">
+            Sau incarca fisier (JPG/PNG/GIF)
+          </label>
+          <input
+            ref={fileInputRef}
+            id="banner-file"
+            type="file"
+            accept="image/*,image/gif"
+            className="block w-full text-sm text-slate-600 file:mr-4 file:rounded-full file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-slate-800"
+          />
+          <p className="mt-1 text-xs text-slate-500">
+            Daca selectezi un fisier, acesta va fi incarcat in site si folosit ca banner, ignorand
+            URL-ul de mai sus.
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <input

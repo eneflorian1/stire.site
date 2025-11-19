@@ -5,6 +5,8 @@ import SiteHeader from '@/components/site/site-header';
 import { getArticles } from '@/lib/articles';
 import { getCategories } from '@/lib/categories';
 
+export const dynamic = 'force-dynamic';
+
 type Props = {
   searchParams: Promise<{
     [key: string]: string | string[] | undefined;

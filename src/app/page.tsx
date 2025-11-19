@@ -6,6 +6,8 @@ import { getArticles } from '@/lib/articles';
 import { getBannerSettings } from '@/lib/banner';
 import { getCategories } from '@/lib/categories';
 
+export const dynamic = 'force-dynamic';
+
 export default async function Home() {
   const [articles, categories, banner] = await Promise.all([
     getArticles(),

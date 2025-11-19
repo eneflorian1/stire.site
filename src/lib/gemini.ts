@@ -16,11 +16,19 @@ export type GeminiState = {
   startedAt: string | null;
   lastError: string | null;
   logs: GeminiLog[];
+  // configuratie surse topicuri
+  useManualTopics: boolean;
+  useTrendTopics: boolean;
   // Statistici agregate pentru rularile Gemini
   totalArticlesCreated: number;
   lastRunAt: string | null;
   lastRunCreated: number;
   lastRunProcessedTopics: number;
+  prevRunAt: string | null;
+  prevRunCreated: number;
+  prevRunProcessedTopics: number;
+  // log detaliat per articol
+  articleLogs: GeminiArticleLog[];
 };
 
 export type GeminiLog = {
@@ -28,6 +36,19 @@ export type GeminiLog = {
   message: string;
   level: 'info' | 'error';
   createdAt: string;
+};
+
+export type GeminiArticleLogStatus = 'success' | 'error' | 'skipped';
+
+export type GeminiArticleLog = {
+  id: string;
+  topicLabel: string;
+  articleTitle?: string;
+  articleId?: string;
+  status: GeminiArticleLogStatus;
+  message: string;
+  createdAt: string;
+  details?: string;
 };
 
 const DATA_PATH = path.join(process.cwd(), 'data', 'gemini.json');
@@ -41,10 +62,16 @@ const defaultState: GeminiState = {
   startedAt: null,
   lastError: null,
   logs: [],
+  useManualTopics: true,
+  useTrendTopics: true,
   totalArticlesCreated: 0,
   lastRunAt: null,
   lastRunCreated: 0,
   lastRunProcessedTopics: 0,
+  prevRunAt: null,
+  prevRunCreated: 0,
+  prevRunProcessedTopics: 0,
+  articleLogs: [],
 };
 
 const MISSING_KEY_ERROR = 'Missing Gemini API key';
@@ -60,6 +87,25 @@ const createLogEntry = (
   createdAt,
 });
 
+const createArticleLog = (input: {
+  topicLabel: string;
+  status: GeminiArticleLogStatus;
+  message: string;
+  articleTitle?: string;
+  articleId?: string;
+  details?: string;
+  createdAt?: string;
+}): GeminiArticleLog => ({
+  id: randomUUID(),
+  topicLabel: input.topicLabel,
+  articleTitle: input.articleTitle,
+  articleId: input.articleId,
+  status: input.status,
+  message: input.message,
+  details: input.details,
+  createdAt: input.createdAt ?? new Date().toISOString(),
+});
+
 const normalizeState = (state: Partial<GeminiState>): GeminiState => ({
   apiKey: state.apiKey ?? null,
   credentialsJson: state.credentialsJson ?? null,
@@ -72,11 +118,37 @@ const normalizeState = (state: Partial<GeminiState>): GeminiState => ({
     level: log.level === 'error' ? 'error' : 'info',
     createdAt: log.createdAt ?? new Date().toISOString(),
   })),
+  useManualTopics:
+    typeof state.useManualTopics === 'boolean' ? state.useManualTopics : true,
+  useTrendTopics:
+    typeof state.useTrendTopics === 'boolean' ? state.useTrendTopics : true,
   totalArticlesCreated: typeof state.totalArticlesCreated === 'number' ? state.totalArticlesCreated : 0,
   lastRunAt: state.lastRunAt ?? null,
   lastRunCreated: typeof state.lastRunCreated === 'number' ? state.lastRunCreated : 0,
   lastRunProcessedTopics:
     typeof state.lastRunProcessedTopics === 'number' ? state.lastRunProcessedTopics : 0,
+  prevRunAt: state.prevRunAt ?? null,
+  prevRunCreated:
+    typeof state.prevRunCreated === 'number' ? state.prevRunCreated : 0,
+  prevRunProcessedTopics:
+    typeof state.prevRunProcessedTopics === 'number'
+      ? state.prevRunProcessedTopics
+      : 0,
+  articleLogs: (state.articleLogs ?? []).map((log) => ({
+    id: log.id ?? randomUUID(),
+    topicLabel: log.topicLabel ?? '',
+    articleTitle: log.articleTitle,
+    articleId: log.articleId,
+    status:
+      log.status === 'error'
+        ? 'error'
+        : log.status === 'skipped'
+        ? 'skipped'
+        : 'success',
+    message: log.message ?? '',
+    details: log.details,
+    createdAt: log.createdAt ?? new Date().toISOString(),
+  })),
 });
 
 const normalizeHashtags = (raw: unknown): string | undefined => {
@@ -281,10 +353,17 @@ const callGeminiForTopic = async (
   };
 };
 
-const generateArticlesFromTopics = async (apiKey: string, maxArticles = 3) => {
-  const topics = await getTopics();
+const generateArticlesFromTopics = async (state: GeminiState, maxArticles = 3) => {
+  const allTopics = await getTopics();
+
+  const topics = allTopics.filter((topic) => {
+    if (topic.source === 'manual' && !state.useManualTopics) return false;
+    if (topic.source === 'trend' && !state.useTrendTopics) return false;
+    return true;
+  });
+
   if (!topics.length) {
-    return { created: 0, processedTopics: 0 };
+    return { created: 0, processedTopics: 0, articleLogs: [] as GeminiArticleLog[] };
   }
 
   const [categories, existingArticles] = await Promise.all([getCategories(), getArticles()]);
@@ -292,6 +371,7 @@ const generateArticlesFromTopics = async (apiKey: string, maxArticles = 3) => {
 
   let created = 0;
   let processedTopics = 0;
+  const articleLogs: GeminiArticleLog[] = [];
 
   for (const topic of topics) {
     if (created >= maxArticles) break;
@@ -307,14 +387,39 @@ const generateArticlesFromTopics = async (apiKey: string, maxArticles = 3) => {
         article.summary.toLowerCase().includes(labelLower)
     );
     if (alreadyExists) {
+      articleLogs.unshift(
+        createArticleLog({
+          topicLabel: label,
+          status: 'skipped',
+          message: 'Articol deja existent pentru acest topic (titlu sau rezumat asemanator).',
+        })
+      );
       continue;
     }
 
     try {
-      const generated = await callGeminiForTopic(apiKey, label, categoryNames);
+      if (!state.apiKey) {
+        articleLogs.unshift(
+          createArticleLog({
+            topicLabel: label,
+            status: 'error',
+            message: 'Cheia Gemini lipseste in timpul generarii articolului.',
+          })
+        );
+        // eslint-disable-next-line no-continue
+        continue;
+      }
+
+      const generated = await callGeminiForTopic(state.apiKey, label, categoryNames);
       const content = generated.content?.trim();
       if (!content) {
-        // Skip if Gemini did not return content
+        articleLogs.unshift(
+          createArticleLog({
+            topicLabel: label,
+            status: 'skipped',
+            message: 'Gemini nu a returnat continut pentru acest topic.',
+          })
+        );
         continue;
       }
 
@@ -355,6 +460,16 @@ const generateArticlesFromTopics = async (apiKey: string, maxArticles = 3) => {
         { matchExistingCategory: true }
       );
 
+      articleLogs.unshift(
+        createArticleLog({
+          topicLabel: label,
+          articleTitle: article.title,
+          articleId: article.id,
+          status: 'success',
+          message: 'Articol generat si salvat cu succes.',
+        })
+      );
+
       try {
         const submission = await submitUrlToGoogle(article.url);
         await logSMGoogleSubmission(article.url, submission, 'auto');
@@ -363,14 +478,23 @@ const generateArticlesFromTopics = async (apiKey: string, maxArticles = 3) => {
       }
 
       created += 1;
-    } catch {
-      // Ignoram erorile per-topic; actiunea "start" va raporta un mesaj general
-      // eslint-disable-next-line no-continue
-      continue;
-    }
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : 'Eroare neasteptata la generarea articolului.';
+        articleLogs.unshift(
+          createArticleLog({
+            topicLabel: label,
+            status: 'error',
+            message: 'Eroare la generarea articolului.',
+            details: message,
+          })
+        );
+        // eslint-disable-next-line no-continue
+        continue;
+      }
   }
 
-  return { created, processedTopics };
+  return { created, processedTopics, articleLogs };
 };
 
 export const getGeminiState = async (): Promise<GeminiState> => {
@@ -416,6 +540,35 @@ export const updateGeminiApiKey = async (rawInput: string) => {
   return persistState(state);
 };
 
+export const updateGeminiConfig = async (config: {
+  useManualTopics?: boolean;
+  useTrendTopics?: boolean;
+}) => {
+  const state = await getGeminiState();
+  if (typeof config.useManualTopics === 'boolean') {
+    state.useManualTopics = config.useManualTopics;
+  }
+  if (typeof config.useTrendTopics === 'boolean') {
+    state.useTrendTopics = config.useTrendTopics;
+  }
+  state.logs.unshift(
+    createLogEntry('Configuratia surselor de topicuri Gemini a fost actualizata.', 'info')
+  );
+  state.logs = state.logs.slice(0, 100);
+  return persistState(state);
+};
+
+export const deleteGeminiArticleLogs = async (ids?: string[]) => {
+  const state = await getGeminiState();
+  if (!ids || ids.length === 0) {
+    state.articleLogs = [];
+  } else {
+    const idSet = new Set(ids);
+    state.articleLogs = state.articleLogs.filter((log) => !idSet.has(log.id));
+  }
+  return persistState(state);
+};
+
 export const runGeminiAction = async (action: 'start' | 'stop' | 'reset') => {
   const state = await getGeminiState();
   const now = new Date().toISOString();
@@ -431,11 +584,23 @@ export const runGeminiAction = async (action: 'start' | 'stop' | 'reset') => {
       state.logs.unshift(createLogEntry('Gemini a fost pornit.', 'info', now));
 
       try {
-        const { created, processedTopics } = await generateArticlesFromTopics(state.apiKey);
+        const previousRunAt = state.lastRunAt;
+        const previousRunCreated = state.lastRunCreated ?? 0;
+        const previousRunProcessed = state.lastRunProcessedTopics ?? 0;
+
+        const { created, processedTopics, articleLogs } = await generateArticlesFromTopics(
+          state,
+          3
+        );
+
         state.totalArticlesCreated = (state.totalArticlesCreated ?? 0) + created;
+        state.prevRunAt = previousRunAt;
+        state.prevRunCreated = previousRunCreated;
+        state.prevRunProcessedTopics = previousRunProcessed;
         state.lastRunAt = now;
         state.lastRunCreated = created;
         state.lastRunProcessedTopics = processedTopics;
+        state.articleLogs = [...articleLogs, ...state.articleLogs].slice(0, 200);
         if (created > 0) {
           state.logs.unshift(
             createLogEntry(
