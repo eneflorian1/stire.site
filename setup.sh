@@ -92,7 +92,7 @@ mkdir -p "$PROJECT_DIR/data" "$PROJECT_DIR/public" "$PROJECT_DIR/.logs"
 run_root chown -R "$SERVICE_USER:$SERVICE_USER" "$PROJECT_DIR"
 
 log_step "Installing npm dependencies"
-run_as_service_user "cd '$PROJECT_DIR' && npm ci --no-audit --no-fund"
+run_as_service_user "cd '$PROJECT_DIR' && npm install --no-audit --no-fund --prefer-offline --unsafe-perm"
 run_as_service_user "cd '$PROJECT_DIR' && npx next telemetry disable >/dev/null 2>&1 || true"
 
 log_step "Building production bundle"
