@@ -44,7 +44,7 @@ Pentru resetarea datelor locale, sterge continutul `data/articles.json` si fisie
 
 ## Deploy pe VPS
 
-1. **Primul setup pe server** – cloneaza repo-ul pe VPS si ruleaza `bash setup.sh` cu utilizatorul care va rula aplicatia. Scriptul instaleaza Node.js 20.x, dependintele npm, creeaza serviciul systemd `stire-site` (ruleaza `npm run start -- --port 3000`) si pregateste template-ul nginx din `ops/nginx/stire.site`.
+1. **Primul setup pe server** - cloneaza repo-ul pe VPS si ruleaza `bash setup.sh` cu utilizatorul care va rula aplicatia. Scriptul instaleaza Node.js 20.x, dependintele npm, configureaza un proces PM2 numit `stire-site` (ruleaza `npm run start -- --hostname 127.0.0.1 --port 3000`) si pregateste template-ul nginx din `ops/nginx/stire.site`, astfel incat domeniul sa raspunda pe porturile 80/443 fara suffix `:3000`.
 2. **Completeaza `.env.production`** pe server cu valorile reale pentru `SITE_BASE_URL` (ex: `https://www.stire.site`) si `GOOGLE_APPLICATION_CREDENTIALS_JSON`. JSON-ul service-account trebuie sa fie o singura linie cu `\n` escape pentru cheie, deoarece fisierul este folosit atat de Next.js cat si de systemd.
 3. **Configureaza HTTPS** optional dupa setup: `sudo certbot --nginx -d domeniu -d www.domeniu` si decomenteaza blocul TLS din config daca vrei un fisier separat.
 4. **Activeaza deploy automat** - dupa ce serverul este pregatit, configureaza secretele/variabilele GitHub (Settings -> Secrets and variables -> Actions):
@@ -58,4 +58,4 @@ Pentru resetarea datelor locale, sterge continutul `data/articles.json` si fisie
 
 Pe fiecare push in `main`, workflow-ul `.github/workflows/deploy.yml` se conecteaza prin SSH, sincronizeaza `.env.production`, ruleaza `ops/deploy.sh` (git pull + `npm ci && npm run build`) si restarteaza serviciul `stire-site`. In cazul in care cheia JSON lipseste, API-ul de indexare nu mai este sarit deoarece secretul este injectat pe server la fiecare deploy.
 
-> Nota: utilizatorul definit in `VPS_SSH_USER` trebuie sa poata rula `sudo systemctl ...` si `sudo systemctl reload nginx` fara parola. Adauga-l in `/etc/sudoers.d/` daca este nevoie.
+> Nota: utilizatorul definit in `SSH_USER` trebuie sa poata rula `pm2` si comenzi `sudo systemctl reload nginx` fara parola. Verifica `pm2 status` dupa fiecare deploy; daca serverul a fost restartat, `pm2 resurrect` (automat prin `pm2 startup`) va reporni aplicatia.

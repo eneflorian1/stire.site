@@ -4,6 +4,7 @@ set -euo pipefail
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 OPS_DIR="$PROJECT_DIR/ops"
 SERVICE_NAME="${SERVICE_NAME:-stire-site}"
+PM2_APP_NAME="${PM2_APP_NAME:-$SERVICE_NAME}"
 SERVICE_USER="${SERVICE_USER:-$(id -un)}"
 DOMAIN="${DOMAIN:-stire.site}"
 APP_PORT="${APP_PORT:-3000}"
@@ -16,6 +17,12 @@ fi
 
 if ! id -u "$SERVICE_USER" >/dev/null 2>&1; then
   echo "[setup] User '$SERVICE_USER' does not exist. Create it first or run with SERVICE_USER=<user>." >&2
+  exit 1
+fi
+
+SERVICE_HOME="$(getent passwd "$SERVICE_USER" | cut -d: -f6)"
+if [ -z "$SERVICE_HOME" ]; then
+  echo "[setup] Could not determine home directory for $SERVICE_USER" >&2
   exit 1
 fi
 
@@ -103,17 +110,16 @@ run_as_service_user "cd '$PROJECT_DIR' && touch .env.production"
 run_root chmod 600 "$PROJECT_DIR/.env.production"
 run_root chown "$SERVICE_USER:$SERVICE_USER" "$PROJECT_DIR/.env.production"
 
-SYSTEMD_TEMPLATE="$OPS_DIR/systemd/stire-site.service"
-if [ ! -f "$SYSTEMD_TEMPLATE" ]; then
-  echo "[setup] Missing systemd template at $SYSTEMD_TEMPLATE" >&2
-  exit 1
-fi
+log_step "Installing PM2 globally"
+run_root npm install -g pm2
 
-log_step "Configuring systemd service ($SERVICE_NAME)"
-render_template "$SYSTEMD_TEMPLATE" "/tmp/${SERVICE_NAME}.service"
-run_root mv "/tmp/${SERVICE_NAME}.service" "/etc/systemd/system/${SERVICE_NAME}.service"
-run_root systemctl daemon-reload
-run_root systemctl enable --now "$SERVICE_NAME"
+log_step "Bootstrapping PM2 process (${PM2_APP_NAME})"
+run_as_service_user "pm2 delete '${PM2_APP_NAME}' >/dev/null 2>&1 || true"
+run_as_service_user "cd '$PROJECT_DIR' && pm2 start npm --name '${PM2_APP_NAME}' -- run start -- --hostname 127.0.0.1 --port ${APP_PORT}"
+run_as_service_user "pm2 save"
+
+log_step "Enabling PM2 startup"
+run_root env PM2_HOME="${SERVICE_HOME}/.pm2" pm2 startup systemd -u "$SERVICE_USER" --hp "$SERVICE_HOME" >/dev/null 2>&1 || true
 
 NGINX_TEMPLATE="$OPS_DIR/nginx/stire.site"
 if [ ! -f "$NGINX_TEMPLATE" ]; then
@@ -130,7 +136,7 @@ run_root systemctl reload nginx
 
 log_step "Setup complete"
 echo " Project directory : $PROJECT_DIR"
-echo " Systemd service   : $SERVICE_NAME"
+echo " PM2 app name      : $PM2_APP_NAME"
 echo " Service user      : $SERVICE_USER"
 echo " Domain            : $DOMAIN"
 echo " HTTP proxy port   : $APP_PORT"
@@ -138,7 +144,8 @@ echo
 cat <<'EOT'
 Next steps:
   1. Update .env.production with the production SITE_BASE_URL and GOOGLE_APPLICATION_CREDENTIALS_JSON values.
-  2. Run 'sudo certbot --nginx -d <domain> -d www.<domain>' when you are ready to enable HTTPS.
-  3. Push your code to GitHub and configure the secrets listed in .github/workflows/deploy.yml for auto-deploy.
-  4. Trigger a GitHub Actions deploy (push to main) after you add the secrets.
+  2. Verify 'pm2 status' shows the app online and run 'pm2 logs' if needed.
+  3. Run 'sudo certbot --nginx -d <domain> -d www.<domain>' when you are ready to enable HTTPS.
+  4. Push your code to GitHub and configure the secrets listed in .github/workflows/deploy.yml for auto-deploy.
+  5. Trigger a GitHub Actions deploy (push to main) after you add the secrets.
 EOT

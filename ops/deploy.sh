@@ -8,6 +8,8 @@ fi
 
 BRANCH="${BRANCH:-main}"
 SERVICE_NAME="${SERVICE_NAME:-stire-site}"
+PM2_APP_NAME="${PM2_APP_NAME:-$SERVICE_NAME}"
+APP_PORT="${APP_PORT:-3000}"
 NPM_INSTALL_CMD="${NPM_INSTALL_CMD:-ci}"
 NPM_INSTALL_FALLBACK_CMD="${NPM_INSTALL_FALLBACK_CMD:-install}"
 NPM_INSTALL_JOBS="${NPM_INSTALL_JOBS:-1}"
@@ -42,6 +44,31 @@ run_npm_install() {
   npm "$subcmd" "$@"
 }
 
+ensure_pm2() {
+  if command -v pm2 >/dev/null 2>&1; then
+    return
+  fi
+  echo "[deploy] PM2 not found. Installing globally..."
+  if npm install -g pm2 >/dev/null 2>&1; then
+    echo "[deploy] PM2 installed."
+  else
+    echo "[deploy] Failed to install PM2 globally. Please install pm2 and rerun deploy." >&2
+    exit 1
+  fi
+}
+
+start_or_reload_pm2() {
+  ensure_pm2
+  if pm2 describe "$PM2_APP_NAME" >/dev/null 2>&1; then
+    echo "[deploy] Reloading PM2 app $PM2_APP_NAME"
+    pm2 reload "$PM2_APP_NAME" --update-env
+  else
+    echo "[deploy] Starting PM2 app $PM2_APP_NAME"
+    pm2 start npm --name "$PM2_APP_NAME" -- run start -- --hostname 127.0.0.1 --port "$APP_PORT"
+  fi
+  pm2 save >/dev/null 2>&1 || true
+}
+
 ENV_FILE="$APP_DIR/.env.production"
 if [ -n "${SITE_BASE_URL:-}" ] && [ -n "${GOOGLE_APPLICATION_CREDENTIALS_JSON:-}" ]; then
   echo "[deploy] Refreshing $ENV_FILE from environment"
@@ -55,11 +82,6 @@ fi
 if [ ! -f "$ENV_FILE" ]; then
   echo "[deploy] Missing $ENV_FILE. Provide SITE_BASE_URL and GOOGLE_APPLICATION_CREDENTIALS_JSON." >&2
   exit 1
-fi
-
-if command -v systemctl >/dev/null 2>&1; then
-  echo "[deploy] Stopping $SERVICE_NAME"
-  run_root systemctl stop "$SERVICE_NAME" >/dev/null 2>&1 || true
 fi
 
 echo "[deploy] Fetching $BRANCH"
@@ -138,12 +160,7 @@ set -a
 set +a
 npm run build
 
-if command -v systemctl >/dev/null 2>&1; then
-  echo "[deploy] Starting $SERVICE_NAME"
-  run_root systemctl daemon-reload
-  run_root systemctl restart "$SERVICE_NAME"
-  run_root systemctl enable "$SERVICE_NAME" >/dev/null 2>&1 || true
-fi
+start_or_reload_pm2
 
 if command -v nginx >/dev/null 2>&1 && command -v systemctl >/dev/null 2>&1; then
   echo "[deploy] Reloading nginx"
