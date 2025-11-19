@@ -1247,58 +1247,49 @@ const SMGoogleTab = ({
 
     {activeTab === 'json' && (
       <div className="mt-6 space-y-4">
-        {credentials?.source === 'env' ? (
+        {credentials?.source === 'env' && (
           <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-800">
-            Credentialele sunt preluate din mediul serverului (.env) si nu pot fi modificate din
-            dashboard. Actualizeaza secretul `GOOGLE_APPLICATION_CREDENTIALS_JSON` pentru a schimba
-            acest comportament.
+            Credentialele sunt preluate din mediul serverului (.env). Poti suprascrie temporar acest comportament salvand JSON-ul mai jos.
           </div>
-        ) : (
-          <>
-            <p className="text-sm text-slate-600">
-              Introdu structura JSON a service account-ului direct din dashboard. Datele sunt
-              criptate local in fisierul <code>data/smgoogle-account.json</code> si folosite doar
-              pentru Google Indexing API.
-            </p>
-            <textarea
-              className="min-h-[200px] w-full rounded-2xl border border-slate-200 bg-slate-50 p-4 font-mono text-xs text-slate-900 focus:border-slate-400 focus:outline-none"
-              placeholder="Pasteaza JSON-ul complet..."
-              value={credentialsJson}
-              onChange={(event) => onCredentialsJsonChange(event.target.value)}
-            />
-            <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                className={buttonPrimary}
-                onClick={onSaveCredentials}
-                disabled={isSavingCredentials}
-              >
-                {isSavingCredentials ? 'Salvam...' : 'Salveaza credentialele'}
-              </button>
-              {credentials?.source === 'stored' && (
-                <button
-                  type="button"
-                  className={buttonGhost}
-                  onClick={onDeleteCredentials}
-                  disabled={isSavingCredentials}
-                >
-                  Sterge credentialele
-                </button>
-              )}
-            </div>
-            {credentials?.source === 'stored' && credentials.updatedAt && (
-              <p className="text-xs text-slate-400">
-                Ultima actualizare: {new Date(credentials.updatedAt).toLocaleString('ro-RO')}
-              </p>
-            )}
-          </>
+        )}
+        <p className="text-sm text-slate-600">
+          Introdu structura JSON a service account-ului direct din dashboard. Datele sunt criptate local in fisierul <code>data/smgoogle-account.json</code> si folosite doar pentru Google Indexing API.
+        </p>
+        <textarea
+          className="min-h-[200px] w-full rounded-2xl border border-slate-200 bg-slate-50 p-4 font-mono text-xs text-slate-900 focus:border-slate-400 focus:outline-none"
+          placeholder="Pasteaza JSON-ul complet..."
+          value={credentialsJson}
+          onChange={(event) => onCredentialsJsonChange(event.target.value)}
+        />
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            className={buttonPrimary}
+            onClick={onSaveCredentials}
+            disabled={isSavingCredentials}
+          >
+            {isSavingCredentials ? 'Salvam...' : 'Salveaza credentialele'}
+          </button>
+          {credentials?.source === 'stored' && (
+            <button
+              type="button"
+              className={buttonGhost}
+              onClick={onDeleteCredentials}
+              disabled={isSavingCredentials}
+            >
+              Sterge credentialele
+            </button>
+          )}
+        </div>
+        {credentials?.source === 'stored' && credentials.updatedAt && (
+          <p className="text-xs text-slate-400">
+            Ultima actualizare: {new Date(credentials.updatedAt).toLocaleString('ro-RO')}
+          </p>
         )}
         <p className="text-xs text-slate-500">
           Daca preferi varianta clasica, poti seta variabila{' '}
-          <code className="rounded bg-slate-100 px-2 py-1 text-xs">
-            GOOGLE_APPLICATION_CREDENTIALS_JSON
-          </code>{' '}
-          in .env și dashboard-ul va deveni read-only.
+          <code className="rounded bg-slate-100 px-2 py-1 text-xs">GOOGLE_APPLICATION_CREDENTIALS_JSON</code>{' '}
+          in .env. Daca nu exista un JSON salvat aici, aplicatia va folosi secretul din env.
         </p>
         <pre className="rounded-2xl bg-slate-900 p-4 text-xs text-white">{GOOGLE_JSON_SAMPLE}</pre>
         {credentialsMessage && (
@@ -1306,7 +1297,6 @@ const SMGoogleTab = ({
         )}
       </div>
     )}
-
     {message && (
       <p className="mt-6 rounded-xl bg-slate-50 p-3 text-sm text-slate-600">{message}</p>
     )}

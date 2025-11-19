@@ -1,4 +1,5 @@
 import { JWT } from 'google-auth-library';
+import { loadStoredGoogleCredentials } from './google-service-account';
 
 type SubmissionSuccess = {
   success: true;
@@ -24,26 +25,48 @@ export type SubmissionResult = SubmissionSuccess | SubmissionSkipped | Submissio
 const INDEXING_SCOPE = 'https://www.googleapis.com/auth/indexing';
 const INDEXING_ENDPOINT = 'https://indexing.googleapis.com/v3/urlNotifications:publish';
 
-const getCredentials = () => {
-  const raw = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
-  if (!raw) {
-    return null;
-  }
-
+const parseJson = (raw: string, source: 'env' | 'stored') => {
   try {
     return JSON.parse(raw);
   } catch {
-    throw new Error('GOOGLE_APPLICATION_CREDENTIALS_JSON is not valid JSON.');
+    if (source === 'stored') {
+      throw new Error('Credentialele salvate nu contin JSON valid. Incarca din nou fisierul.');
+    }
+    throw new Error('GOOGLE_APPLICATION_CREDENTIALS_JSON din .env nu este JSON valid.');
   }
 };
 
+const getCredentials = async () => {
+  const stored = await loadStoredGoogleCredentials();
+  if (stored?.raw) {
+    return parseJson(stored.raw, 'stored');
+  }
+
+  const rawEnv = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+  if (rawEnv) {
+    return parseJson(rawEnv, 'env');
+  }
+
+  return null;
+};
+
 export const submitUrlToGoogle = async (url: string): Promise<SubmissionResult> => {
-  const credentials = getCredentials();
+  let credentials: ReturnType<typeof JSON.parse> | null = null;
+  try {
+    credentials = await getCredentials();
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Nu am putut incarca credentialele.',
+    };
+  }
+
   if (!credentials) {
     return {
       success: false,
       skipped: true,
-      reason: 'Missing GOOGLE_APPLICATION_CREDENTIALS_JSON environment variable.',
+      reason:
+        'Lipsesc credentialele Google Indexing. Incarca JSON-ul in dashboard sau seteaza GOOGLE_APPLICATION_CREDENTIALS_JSON.',
     };
   }
 

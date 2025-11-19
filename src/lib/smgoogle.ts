@@ -41,6 +41,23 @@ const getRawLogs = async () => {
 
 const saveLogs = async (logs: SMGoogleLog[]) => writeJsonFile(DATA_PATH, logs);
 
+const describeSubmission = (submission: SubmissionResult, status: SMGoogleLog['status']) => {
+  if (status === 'success') {
+    return `Indexare trimisa (status: ${submission.status ?? '200'})`;
+  }
+
+  const parts: string[] = [];
+  if (!submission.success && submission.skipped) {
+    parts.push(submission.reason || 'Trimitere sarita');
+  } else if (!submission.success) {
+    parts.push(submission.error || 'Eroare Google Indexing');
+  }
+  if (submission.status) {
+    parts.push(`status: ${submission.status}`);
+  }
+  return parts.filter(Boolean).join(' | ') || 'Eroare Google Indexing';
+};
+
 export const getSMGoogleLogs = async () => {
   const logs = await getRawLogs();
   return logs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -62,11 +79,7 @@ export const logSMGoogleSubmission = async (
     id: randomUUID(),
     url,
     status,
-    detail: submission.success
-      ? 'Indexare trimisa'
-      : submission.skipped
-      ? submission.reason ?? 'Trimitere sarita'
-      : submission.error ?? 'Eroare Google Indexing',
+    detail: describeSubmission(submission, status),
     submission,
     createdAt: new Date().toISOString(),
     source,
