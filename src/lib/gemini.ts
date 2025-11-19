@@ -440,8 +440,9 @@ const generateArticlesFromTopics = async (state: GeminiState, maxArticles = 3) =
             imageUrl = downloaded.imageUrl;
             imageSourceUrl = downloaded.sourceUrl;
           } else {
-            // daca nu reusim sa salvam local, folosim macar URL-ul original
-            imageUrl = remoteUrl;
+            // daca nu reusim sa salvam local, renuntam la imagine pentru a evita erorile 400/404
+            // din surse externe care blocheaza hotlinking
+            imageUrl = undefined;
           }
         }
       } catch {

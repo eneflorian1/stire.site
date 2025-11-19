@@ -189,7 +189,7 @@ const GeminiTab = () => {
                 hasApiKey ? 'bg-emerald-500' : 'bg-rose-500'
               }`}
             />
-            V API
+            API
           </button>
         </div>
       </div>
