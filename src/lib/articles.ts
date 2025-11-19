@@ -1,0 +1,226 @@
+import { randomUUID } from 'crypto';
+import { promises as fs } from 'fs';
+import path from 'path';
+import { ensureCategoryRecord } from './categories';
+import { encodeXml, slugify } from './strings';
+
+export type ArticleStatus = 'draft' | 'published';
+
+export type Article = {
+  id: string;
+  title: string;
+  slug: string;
+  summary: string;
+  content: string;
+  category: string;
+  categorySlug: string;
+  status: ArticleStatus;
+  imageUrl?: string;
+  publishedAt: string;
+  createdAt: string;
+  updatedAt: string;
+  url: string;
+};
+
+export type ArticleInput = {
+  title: string;
+  summary: string;
+  content: string;
+  category: string;
+  imageUrl?: string;
+  status?: ArticleStatus;
+  publishedAt?: string;
+};
+
+const DATA_PATH = path.join(process.cwd(), 'data', 'articles.json');
+const PUBLIC_DIR = path.join(process.cwd(), 'public');
+const SITEMAP_FILES = {
+  index: path.join(PUBLIC_DIR, 'sitemap.xml'),
+  news: path.join(PUBLIC_DIR, 'sitemap-news.xml'),
+  latest: path.join(PUBLIC_DIR, 'sitemap-articles-latest.xml'),
+  categories: path.join(PUBLIC_DIR, 'sitemap-categories.xml'),
+  images: path.join(PUBLIC_DIR, 'sitemap-images.xml'),
+};
+const RAW_BASE_URL = process.env.SITE_BASE_URL ?? 'http://stire.site';
+const BASE_URL = RAW_BASE_URL.endsWith('/') ? RAW_BASE_URL.slice(0, -1) : RAW_BASE_URL;
+
+const ensureDataFile = async () => {
+  try {
+    await fs.access(DATA_PATH);
+  } catch {
+    await fs.mkdir(path.dirname(DATA_PATH), { recursive: true });
+    await fs.writeFile(DATA_PATH, '[]', 'utf8');
+  }
+};
+
+const normalizeExistingArticle = (article: Partial<Article>): Article | null => {
+  if (!article.title || !article.summary || !article.content) {
+    return null;
+  }
+
+  const categoryName = (article.category ?? 'general').trim() || 'general';
+  const categorySlug = (article.categorySlug ?? slugify(categoryName)) || 'general';
+  const slug = (article.slug ?? slugify(article.title)) || slugify('articol');
+  const now = new Date().toISOString();
+
+  return {
+    id: article.id ?? randomUUID(),
+    title: article.title.trim(),
+    slug,
+    summary: article.summary.trim(),
+    content: article.content.trim(),
+    category: categoryName,
+    categorySlug,
+    status: article.status === 'draft' ? 'draft' : 'published',
+    imageUrl: article.imageUrl,
+    publishedAt: article.publishedAt ?? now,
+    createdAt: article.createdAt ?? now,
+    updatedAt: article.updatedAt ?? now,
+    url: article.url ?? buildArticleUrl(categorySlug, slug),
+  };
+};
+
+const readArticlesFromDisk = async (): Promise<Article[]> => {
+  await ensureDataFile();
+  const raw = await fs.readFile(DATA_PATH, 'utf8');
+  try {
+    const parsed: Article[] = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed
+      .map((item) => normalizeExistingArticle(item))
+      .filter((item): item is Article => Boolean(item));
+  } catch {
+    return [];
+  }
+};
+
+const writeArticlesToDisk = async (articles: Article[]) => {
+  await fs.writeFile(DATA_PATH, JSON.stringify(articles, null, 2), 'utf8');
+};
+
+const buildArticleUrl = (categorySlug: string, articleSlug: string) =>
+  `${BASE_URL}/Articol/${categorySlug}/${articleSlug}`;
+
+const writeXml = async (filePath: string, xml: string) => {
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+  await fs.writeFile(filePath, xml, 'utf8');
+};
+
+const buildUrlset = (entries: { loc: string; lastmod?: string; priority?: string }[]) => {
+  const body = entries
+    .map((entry) => {
+      const lastmod = entry.lastmod ? `\n    <lastmod>${entry.lastmod}</lastmod>` : '';
+      const priority = entry.priority ? `\n    <priority>${entry.priority}</priority>` : '';
+      return `  <url>\n    <loc>${encodeXml(entry.loc)}</loc>${lastmod}${priority}\n  </url>`;
+    })
+    .join('\n');
+
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>\n`;
+};
+
+const rebuildSitemaps = async (articles: Article[]) => {
+  const published = [...articles]
+    .filter((article) => article.status === 'published')
+    .sort(
+      (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+    );
+
+  const sitemapIndex = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <sitemap>\n    <loc>${BASE_URL}/sitemap-news.xml</loc>\n  </sitemap>\n  <sitemap>\n    <loc>${BASE_URL}/sitemap-articles-latest.xml</loc>\n  </sitemap>\n  <sitemap>\n    <loc>${BASE_URL}/sitemap-categories.xml</loc>\n  </sitemap>\n  <sitemap>\n    <loc>${BASE_URL}/sitemap-images.xml</loc>\n  </sitemap>\n</sitemapindex>\n`;
+  await writeXml(SITEMAP_FILES.index, sitemapIndex);
+
+  const latestArticles = published.slice(0, 50);
+  const latestEntries = latestArticles.map((article) => ({
+    loc: article.url,
+    lastmod: article.updatedAt ?? article.publishedAt,
+    priority: '0.9',
+  }));
+  await writeXml(SITEMAP_FILES.news, buildUrlset(latestEntries));
+
+  const allEntries = published.map((article) => ({
+    loc: article.url,
+    lastmod: article.updatedAt ?? article.publishedAt,
+    priority: '0.8',
+  }));
+  await writeXml(SITEMAP_FILES.latest, buildUrlset(allEntries));
+
+  const categoriesMap = new Map<string, { name: string; lastmod: string }>();
+  for (const article of published) {
+    const existing = categoriesMap.get(article.categorySlug);
+    const lastmod = article.updatedAt ?? article.publishedAt;
+    if (!existing || new Date(lastmod).getTime() > new Date(existing.lastmod).getTime()) {
+      categoriesMap.set(article.categorySlug, {
+        name: article.category,
+        lastmod,
+      });
+    }
+  }
+  const categoryEntries = Array.from(categoriesMap.entries()).map(([slug, data]) => ({
+    loc: `${BASE_URL}/Categorie/${slug}`,
+    lastmod: data.lastmod,
+    priority: '0.6',
+  }));
+  await writeXml(SITEMAP_FILES.categories, buildUrlset(categoryEntries));
+
+  const articlesWithImages = published.filter((article) => Boolean(article.imageUrl));
+  const imageXmlEntries = articlesWithImages
+    .map(
+      (article) => `  <url>
+    <loc>${encodeXml(article.url)}</loc>
+    <image:image>
+      <image:loc>${encodeXml(article.imageUrl as string)}</image:loc>
+      <image:title>${encodeXml(article.title)}</image:title>
+    </image:image>
+  </url>`
+    )
+    .join('\n');
+  const imageXml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n${imageXmlEntries}\n</urlset>\n`;
+  await writeXml(SITEMAP_FILES.images, imageXml);
+};
+
+export const getArticles = async () => {
+  const articles = await readArticlesFromDisk();
+  return articles.sort(
+    (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+  );
+};
+
+export const createArticle = async (input: ArticleInput) => {
+  const articles = await readArticlesFromDisk();
+  const baseSlug = slugify(input.title || 'articol') || 'articol';
+  let slug = baseSlug;
+  let counter = 1;
+  while (articles.some((article) => article.slug === slug)) {
+    slug = `${baseSlug}-${counter++}`;
+  }
+
+  const rawCategory = input.category?.trim() ?? '';
+  const category = rawCategory || 'general';
+  const categorySlug = slugify(category) || 'general';
+
+  const now = new Date().toISOString();
+  const publishedAt = input.publishedAt ? new Date(input.publishedAt).toISOString() : now;
+  const article: Article = {
+    id: randomUUID(),
+    title: input.title.trim(),
+    slug,
+    summary: input.summary.trim(),
+    content: input.content.trim(),
+    category,
+    categorySlug,
+    status: input.status ?? 'published',
+    imageUrl: input.imageUrl?.trim() || undefined,
+    publishedAt,
+    createdAt: now,
+    updatedAt: now,
+    url: buildArticleUrl(categorySlug, slug),
+  };
+
+  const updatedArticles = [article, ...articles];
+  await writeArticlesToDisk(updatedArticles);
+  await ensureCategoryRecord(category);
+  await rebuildSitemaps(updatedArticles);
+  return article;
+};

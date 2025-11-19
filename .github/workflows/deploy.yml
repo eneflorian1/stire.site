@@ -1,0 +1,81 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: ["main"]
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      SSH_HOST: ${{ secrets.VPS_SSH_HOST }}
+      SSH_USER: ${{ secrets.VPS_SSH_USER }}
+      SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+      SSH_PORT: ${{ secrets.VPS_SSH_PORT || '22' }}
+      PROJECT_DIR: ${{ secrets.VPS_PROJECT_DIR }}
+      SITE_BASE_URL: ${{ secrets.PROD_SITE_BASE_URL }}
+      GOOGLE_JSON: ${{ secrets.PROD_GOOGLE_INDEXING_JSON }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate secrets
+        env:
+          REQUIRED: SSH_HOST SSH_USER SSH_KEY PROJECT_DIR SITE_BASE_URL GOOGLE_JSON
+        run: |
+          set -euo pipefail
+          missing=0
+          for var in $REQUIRED; do
+            if [ -z "${!var}" ]; then
+              echo "::error::Missing $var (check GitHub secrets)" >&2
+              missing=1
+            fi
+          done
+          if [ "$missing" -eq 1 ]; then
+            exit 1
+          fi
+
+      - name: Prepare SSH key
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts
+
+      - name: Deploy
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/id_ed25519 -p "$SSH_PORT" -o BatchMode=yes -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" \
+            "SITE_BASE_URL='$SITE_BASE_URL' GOOGLE_APPLICATION_CREDENTIALS_JSON='$GOOGLE_JSON' PROJECT_DIR='$PROJECT_DIR' bash -s" <<'EOF'
+          set -euo pipefail
+
+          if [ -z "$PROJECT_DIR" ]; then
+            echo "PROJECT_DIR is not set" >&2
+            exit 1
+          fi
+
+          if [ ! -d "$PROJECT_DIR" ]; then
+            echo "Project directory $PROJECT_DIR was not found on the server." >&2
+            exit 1
+          fi
+
+          if [ ! -x "$PROJECT_DIR/ops/deploy.sh" ]; then
+            chmod +x "$PROJECT_DIR/ops/deploy.sh"
+          fi
+
+          umask 077
+          cat <<ENV > "$PROJECT_DIR/.env.production"
+SITE_BASE_URL='$SITE_BASE_URL'
+GOOGLE_APPLICATION_CREDENTIALS_JSON='$GOOGLE_APPLICATION_CREDENTIALS_JSON'
+ENV
+          chmod 600 "$PROJECT_DIR/.env.production"
+
+          cd "$PROJECT_DIR"
+          SITE_BASE_URL="$SITE_BASE_URL" \
+          GOOGLE_APPLICATION_CREDENTIALS_JSON="$GOOGLE_APPLICATION_CREDENTIALS_JSON" \
+          bash ./ops/deploy.sh "$PROJECT_DIR"
+EOF

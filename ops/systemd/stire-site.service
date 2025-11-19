@@ -1,0 +1,21 @@
+[Unit]
+Description=stire.site Next.js application
+After=network.target
+
+[Service]
+Type=simple
+User=${SERVICE_USER}
+WorkingDirectory=${PROJECT_DIR}
+Environment=NODE_ENV=production
+Environment=PORT=${APP_PORT}
+EnvironmentFile=-${PROJECT_DIR}/.env.production
+ExecStart=/usr/bin/env bash -lc 'cd ${PROJECT_DIR} && exec npm run start -- --hostname 127.0.0.1 --port ${APP_PORT}'
+Restart=always
+RestartSec=5
+TimeoutStopSec=20
+SyslogIdentifier=${SERVICE_NAME}
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
