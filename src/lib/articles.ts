@@ -248,13 +248,21 @@ ${newsItems}
   const articlesWithImages = published.filter((article) => Boolean(article.imageUrl));
   const imageXmlEntries = articlesWithImages
     .map(
-      (article) => `  <url>
+      (article) => {
+        const rawImageUrl = article.imageUrl as string;
+        const absoluteImageUrl =
+          rawImageUrl.startsWith('http://') || rawImageUrl.startsWith('https://')
+            ? rawImageUrl
+            : `${BASE_URL}${rawImageUrl.startsWith('/') ? rawImageUrl : `/${rawImageUrl}`}`;
+
+        return `  <url>
     <loc>${encodeXml(article.url)}</loc>
     <image:image>
-      <image:loc>${encodeXml(article.imageUrl as string)}</image:loc>
+      <image:loc>${encodeXml(absoluteImageUrl)}</image:loc>
       <image:title>${encodeXml(article.title)}</image:title>
     </image:image>
-  </url>`
+  </url>`;
+      }
     )
     .join('\n');
   const imageXml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n${imageXmlEntries}\n</urlset>\n`;
