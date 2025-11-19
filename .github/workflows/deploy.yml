@@ -12,19 +12,19 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      SSH_HOST: ${{ secrets.VPS_SSH_HOST }}
-      SSH_USER: ${{ secrets.VPS_SSH_USER }}
-      SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
-      SSH_PORT: ${{ secrets.VPS_SSH_PORT || '22' }}
-      PROJECT_DIR: ${{ secrets.VPS_PROJECT_DIR }}
-      SITE_BASE_URL: ${{ secrets.PROD_SITE_BASE_URL }}
-      GOOGLE_JSON: ${{ secrets.PROD_GOOGLE_INDEXING_JSON }}
+      SSH_HOST: ${{ secrets.SSH_HOST }}
+      SSH_USER: ${{ secrets.SSH_USER }}
+      SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
+      PROJECT_DIR: ${{ secrets.PROJECT_DIR || '/opt/stire.site' }}
+      SITE_BASE_URL: ${{ secrets.SITE_BASE_URL }}
+      GOOGLE_JSON: ${{ secrets.GOOGLE_JSON || secrets.GOOGLE_INDEXING_SERVICE_ACCOUNT_JSON }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Validate secrets
         env:
-          REQUIRED: SSH_HOST SSH_USER SSH_KEY PROJECT_DIR SITE_BASE_URL GOOGLE_JSON
+          REQUIRED: SSH_HOST SSH_USER SSH_KEY SITE_BASE_URL GOOGLE_JSON
         run: |
           set -euo pipefail
           missing=0
