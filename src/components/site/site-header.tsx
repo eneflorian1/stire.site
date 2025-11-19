@@ -18,7 +18,7 @@ const SiteHeader = ({ actions }: Props) => (
     <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-4 text-sm text-slate-600 md:flex-row md:items-center md:justify-between md:px-6">
       <div className="flex items-center justify-between">
         <Link href="/" className="text-lg font-semibold text-slate-900">
-          Știre.site
+          Stire.site
         </Link>
         <div className="md:hidden">{actions}</div>
       </div>
