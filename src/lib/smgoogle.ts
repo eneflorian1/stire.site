@@ -42,8 +42,12 @@ const getRawLogs = async () => {
 const saveLogs = async (logs: SMGoogleLog[]) => writeJsonFile(DATA_PATH, logs);
 
 const describeSubmission = (submission: SubmissionResult, status: SMGoogleLog['status']) => {
+  const httpStatus = 'status' in submission ? submission.status : undefined;
+
   if (status === 'success') {
-    return `Indexare trimisa (status: ${submission.status ?? '200'})`;
+    return httpStatus
+      ? `Indexare trimisa (status: ${httpStatus})`
+      : 'Indexare trimisa (status: 200)';
   }
 
   const parts: string[] = [];
@@ -52,8 +56,8 @@ const describeSubmission = (submission: SubmissionResult, status: SMGoogleLog['s
   } else if (!submission.success) {
     parts.push(submission.error || 'Eroare Google Indexing');
   }
-  if (submission.status) {
-    parts.push(`status: ${submission.status}`);
+  if (httpStatus) {
+    parts.push(`status: ${httpStatus}`);
   }
   return parts.filter(Boolean).join(' | ') || 'Eroare Google Indexing';
 };
