@@ -37,6 +37,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: `${article.title} | stire.site`,
     description: article.summary,
+    alternates: {
+      canonical: article.url,
+    },
     openGraph: {
       title: article.title,
       description: article.summary,

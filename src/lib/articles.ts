@@ -44,7 +44,7 @@ const SITEMAP_FILES = {
   categories: path.join(PUBLIC_DIR, 'sitemap-categories.xml'),
   images: path.join(PUBLIC_DIR, 'sitemap-images.xml'),
 };
-const RAW_BASE_URL = process.env.SITE_BASE_URL ?? 'http://stire.site';
+const RAW_BASE_URL = process.env.SITE_BASE_URL ?? 'https://www.stire.site';
 const BASE_URL = RAW_BASE_URL.endsWith('/') ? RAW_BASE_URL.slice(0, -1) : RAW_BASE_URL;
 
 const ensureDataFile = async () => {
