@@ -44,7 +44,7 @@ Pentru resetarea datelor locale, sterge continutul `data/articles.json` si fisie
 
 ## Deploy pe VPS
 
-1. **Primul setup pe server** - cloneaza repo-ul pe VPS si ruleaza `bash setup.sh` cu utilizatorul care va rula aplicatia. Scriptul instaleaza Node.js 20.x, dependintele npm, configureaza un proces PM2 numit `stire-site` (ruleaza `npm run start -- --hostname 127.0.0.1 --port 3000`) si pregateste template-ul nginx din `ops/nginx/stire.site`, astfel incat domeniul sa raspunda pe porturile 80/443 fara suffix `:3000`.
+1. **Primul setup pe server** - cloneaza repo-ul pe VPS si ruleaza `bash setup.sh` cu utilizatorul care va rula aplicatia. Scriptul instaleaza Node.js 20.x, dependintele npm, configureaza un proces PM2 numit `stire-site` (ruleaza `npm run start -- --hostname 127.0.0.1 --port 3000`) si pregateste template-ul nginx din `ops/nginx/stire.site.conf`, astfel incat domeniul sa raspunda pe porturile 80/443 fara suffix `:3000`.
 2. **Completeaza `.env.production`** pe server cu valorile reale pentru `SITE_BASE_URL` (ex: `https://www.stire.site`) si `GOOGLE_APPLICATION_CREDENTIALS_JSON`. JSON-ul service-account trebuie sa fie o singura linie cu `\n` escape pentru cheie, deoarece fisierul este folosit atat de Next.js cat si de systemd.
 3. **Configureaza HTTPS** optional dupa setup: `sudo certbot --nginx -d domeniu -d www.domeniu` si decomenteaza blocul TLS din config daca vrei un fisier separat.
 4. **Activeaza deploy automat** - dupa ce serverul este pregatit, configureaza secretele/variabilele GitHub (Settings -> Secrets and variables -> Actions):

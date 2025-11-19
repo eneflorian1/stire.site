@@ -121,7 +121,7 @@ run_as_service_user "pm2 save"
 log_step "Enabling PM2 startup"
 run_root env PM2_HOME="${SERVICE_HOME}/.pm2" pm2 startup systemd -u "$SERVICE_USER" --hp "$SERVICE_HOME" >/dev/null 2>&1 || true
 
-NGINX_TEMPLATE="$OPS_DIR/nginx/stire.site"
+NGINX_TEMPLATE="$OPS_DIR/nginx/stire.site.conf"
 if [ ! -f "$NGINX_TEMPLATE" ]; then
   echo "[setup] Missing nginx template at $NGINX_TEMPLATE" >&2
   exit 1
