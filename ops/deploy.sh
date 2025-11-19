@@ -8,6 +8,9 @@ fi
 
 BRANCH="${BRANCH:-main}"
 SERVICE_NAME="${SERVICE_NAME:-stire-site}"
+NPM_INSTALL_CMD="${NPM_INSTALL_CMD:-ci}"
+NPM_INSTALL_FALLBACK_CMD="${NPM_INSTALL_FALLBACK_CMD:-install}"
+NPM_INSTALL_JOBS="${NPM_INSTALL_JOBS:-2}"
 
 if [ ! -d "$APP_DIR/.git" ]; then
   echo "[deploy] $APP_DIR does not look like a git repository" >&2
@@ -31,6 +34,12 @@ run_root() {
   else
     "$@"
   fi
+}
+
+run_npm_install() {
+  local subcmd="$1"
+  shift
+  npm "$subcmd" "$@"
 }
 
 ENV_FILE="$APP_DIR/.env.production"
@@ -60,8 +69,29 @@ echo "[deploy] Resetting local branch"
 git reset --hard HEAD
 git checkout -B "$BRANCH" "origin/$BRANCH"
 
-echo "[deploy] Installing npm dependencies"
-npm ci --no-audit --no-fund
+NPM_INSTALL_FLAGS=(--no-audit --no-fund)
+if [ -n "${NPM_EXTRA_INSTALL_FLAGS:-}" ]; then
+  # shellcheck disable=SC2206
+  EXTRA_FLAGS=(${NPM_EXTRA_INSTALL_FLAGS})
+  NPM_INSTALL_FLAGS+=("${EXTRA_FLAGS[@]}")
+fi
+
+export npm_config_audit=false
+export npm_config_fund=false
+export npm_config_progress=false
+export npm_config_jobs="$NPM_INSTALL_JOBS"
+
+echo "[deploy] Installing npm dependencies (npm $NPM_INSTALL_CMD, jobs=$npm_config_jobs)"
+if ! run_npm_install "$NPM_INSTALL_CMD" "${NPM_INSTALL_FLAGS[@]}"; then
+  rc=$?
+  echo "[deploy] npm $NPM_INSTALL_CMD failed with exit $rc. Retrying with npm $NPM_INSTALL_FALLBACK_CMD (jobs=1)..." >&2
+  rm -rf node_modules
+  export npm_config_jobs=1
+  if ! run_npm_install "$NPM_INSTALL_FALLBACK_CMD" "${NPM_INSTALL_FLAGS[@]}"; then
+    echo "[deploy] npm $NPM_INSTALL_FALLBACK_CMD also failed" >&2
+    exit "$rc"
+  fi
+fi
 
 echo "[deploy] Building Next.js app"
 set -a

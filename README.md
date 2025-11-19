@@ -1,4 +1,4 @@
-## stire.site Admin Dashboard
+﻿## stire.site Admin Dashboard
 
 Aplicatie Next.js (App Router + Tailwind CSS) pentru redactia **stire.site**. Panoul permite introducerea articolelor, atasarea de categorii si imagini, gestionarea topicurilor si trimiterea automata catre Google Indexing API.
 
@@ -47,14 +47,14 @@ Pentru resetarea datelor locale, sterge continutul `data/articles.json` si fisie
 1. **Primul setup pe server** – cloneaza repo-ul pe VPS si ruleaza `bash setup.sh` cu utilizatorul care va rula aplicatia. Scriptul instaleaza Node.js 20.x, dependintele npm, creeaza serviciul systemd `stire-site` (ruleaza `npm run start -- --port 3000`) si pregateste template-ul nginx din `ops/nginx/stire.site`.
 2. **Completeaza `.env.production`** pe server cu valorile reale pentru `SITE_BASE_URL` (ex: `https://www.stire.site`) si `GOOGLE_APPLICATION_CREDENTIALS_JSON`. JSON-ul service-account trebuie sa fie o singura linie cu `\n` escape pentru cheie, deoarece fisierul este folosit atat de Next.js cat si de systemd.
 3. **Configureaza HTTPS** optional dupa setup: `sudo certbot --nginx -d domeniu -d www.domeniu` si decomenteaza blocul TLS din config daca vrei un fisier separat.
-4. **Activeaza deploy automat** – dupa ce serverul este pregatit, instaleaza urmatoarele secrete GitHub (Settings → Secrets and variables → Actions) exact cu aceste nume:
-   - `VPS_SSH_HOST` – IP/hostname al VPS-ului.
-   - `VPS_SSH_PORT` – port SSH (optional, default 22).
-   - `VPS_SSH_USER` – utilizatorul folosit la SSH (acelasi care ruleaza serviciul).
-   - `VPS_SSH_KEY` – cheia privata (format OpenSSH, fara parola) cu acces la VPS.
-   - `VPS_PROJECT_DIR` – calea absoluta catre proiect pe server (ex: `/opt/stire.site`).
-   - `PROD_SITE_BASE_URL` – baza publica pentru URL-uri si sitemap-uri.
-   - `PROD_GOOGLE_INDEXING_JSON` – continutul JSON pentru Google Indexing API (escape `\n` pentru cheia privata).
+4. **Activeaza deploy automat** - dupa ce serverul este pregatit, configureaza secretele/variabilele GitHub (Settings -> Secrets and variables -> Actions):
+   - `SSH_HOST` - IP/hostname al VPS-ului.
+   - `SSH_USER` - utilizatorul cu acces SSH si permisiuni `sudo systemctl`.
+   - `SSH_PRIVATE_KEY` - cheia privata OpenSSH (fara parola) pentru utilizatorul definit mai sus.
+   - `SSH_PORT` *(optional)* - seteaza doar daca nu folosesti portul 22.
+   - `PROJECT_DIR` *(optional, secret sau Actions variable)* - calea absoluta catre proiect pe server daca nu este `/opt/stire.site` (ex: `/opt/app/stire.site`).
+   - `SITE_BASE_URL` - baza publica pentru URL-uri si sitemap-uri.
+   - `GOOGLE_JSON` - continutul JSON pentru Google Indexing API (poti reutiliza `GOOGLE_INDEXING_SERVICE_ACCOUNT_JSON`).
 
 Pe fiecare push in `main`, workflow-ul `.github/workflows/deploy.yml` se conecteaza prin SSH, sincronizeaza `.env.production`, ruleaza `ops/deploy.sh` (git pull + `npm ci && npm run build`) si restarteaza serviciul `stire-site`. In cazul in care cheia JSON lipseste, API-ul de indexare nu mai este sarit deoarece secretul este injectat pe server la fiecare deploy.
 
