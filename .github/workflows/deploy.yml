@@ -68,10 +68,10 @@ jobs:
           fi
 
           umask 077
-          cat <<ENV > "$PROJECT_DIR/.env.production"
-SITE_BASE_URL='$SITE_BASE_URL'
-GOOGLE_APPLICATION_CREDENTIALS_JSON='$GOOGLE_APPLICATION_CREDENTIALS_JSON'
-ENV
+          {
+            printf "SITE_BASE_URL='%s'\n" "$SITE_BASE_URL"
+            printf "GOOGLE_APPLICATION_CREDENTIALS_JSON='%s'\n" "$GOOGLE_APPLICATION_CREDENTIALS_JSON"
+          } > "$PROJECT_DIR/.env.production"
           chmod 600 "$PROJECT_DIR/.env.production"
 
           cd "$PROJECT_DIR"
