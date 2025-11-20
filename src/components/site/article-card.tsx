@@ -34,7 +34,9 @@ const ArticleCard = ({ article, variant = 'default' }: Props) => {
           </span>
         </div>
         <div className="flex flex-1 flex-col gap-3 p-6">
-          <h3 className="text-2xl font-semibold text-slate-900">{article.title}</h3>
+          <h3 className="text-xl font-semibold text-slate-900 text-justify md:text-2xl">
+            {article.title}
+          </h3>
           <span className="text-sm text-slate-500">{formattedDate}</span>
         </div>
       </Link>
@@ -56,7 +58,9 @@ const ArticleCard = ({ article, variant = 'default' }: Props) => {
             style={{ backgroundImage: imageBackground }}
           />
         </div>
-        <p className="line-clamp-3 text-base font-semibold text-slate-900">{article.title}</p>
+        <p className="line-clamp-3 text-base font-semibold text-slate-900 text-justify">
+          {article.title}
+        </p>
         <span className="text-xs text-slate-400">{formattedDate}</span>
       </Link>
     );
@@ -77,7 +81,9 @@ const ArticleCard = ({ article, variant = 'default' }: Props) => {
       <span className="absolute right-4 top-4 rounded-full bg-slate-900/90 px-2 py-0.5 text-xs font-semibold text-white">
         {article.category}
       </span>
-      <h3 className="text-lg font-semibold text-slate-900">{article.title}</h3>
+      <h3 className="text-base font-semibold text-slate-900 text-justify md:text-lg">
+        {article.title}
+      </h3>
       <span className="text-xs text-slate-500">{formattedDate}</span>
     </Link>
   );

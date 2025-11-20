@@ -136,7 +136,7 @@ export default async function ArticlePage({ params }: PageProps) {
           )}
 
           <div className="space-y-2 pt-4">
-            <h1 className="text-3xl font-semibold leading-tight text-slate-900 md:text-4xl">
+            <h1 className="text-2xl font-semibold leading-tight text-slate-900 md:text-4xl text-justify">
               {article.title}
             </h1>
             <span className="text-sm text-slate-500">{formatDateTime(article.publishedAt)}</span>
@@ -149,13 +149,13 @@ export default async function ArticlePage({ params }: PageProps) {
                 return (
                   <div
                     key={index}
-                    className="leading-relaxed text-lg text-slate-800 [&_a]:text-sky-600 [&_a]:underline"
+                    className="leading-relaxed text-lg text-slate-800 text-justify [&_a]:text-sky-600 [&_a]:underline"
                     dangerouslySetInnerHTML={{ __html: block.replace(/\n/g, '<br />') }}
                   />
                 );
               }
               return (
-                <p key={index} className="leading-relaxed text-lg text-slate-800">
+                <p key={index} className="leading-relaxed text-lg text-slate-800 text-justify">
                   {block}
                 </p>
               );

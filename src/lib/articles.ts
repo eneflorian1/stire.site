@@ -182,15 +182,17 @@ const buildUrlset = (entries: { loc: string; lastmod?: string; priority?: string
 const rebuildSitemaps = async (articles: Article[]) => {
   const published = [...articles]
     .filter((article) => article.status === 'published')
+    // Ordonare cronologică crescătoare (dată + oră)
     .sort(
-      (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+      (a, b) => new Date(a.publishedAt).getTime() - new Date(b.publishedAt).getTime()
     );
 
   const sitemapIndex = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <sitemap>\n    <loc>${BASE_URL}/sitemap-news.xml</loc>\n  </sitemap>\n  <sitemap>\n    <loc>${BASE_URL}/sitemap-articles-latest.xml</loc>\n  </sitemap>\n  <sitemap>\n    <loc>${BASE_URL}/sitemap-categories.xml</loc>\n  </sitemap>\n  <sitemap>\n    <loc>${BASE_URL}/sitemap-images.xml</loc>\n  </sitemap>\n</sitemapindex>\n`;
   await writeXml(SITEMAP_FILES.index, sitemapIndex);
 
   // Google News sitemap - ultimele articole (max ~50, oricum Google ia doar ~48h în calcul)
-  const latestArticles = published.slice(0, 50);
+  // Luăm cele mai noi 50 din lista ordonată crescător.
+  const latestArticles = published.slice(-50);
   const newsItems = latestArticles
     .map((article) => {
       const publicationDate = article.publishedAt || article.createdAt || article.updatedAt;
@@ -238,13 +240,19 @@ ${newsItems}
       });
     }
   }
-  const categoryEntries = Array.from(categoriesMap.entries()).map(([slug, data]) => ({
-    // URL-urile reale de categorie/detaliu folosite in site sunt prin lista de articole,
-    // filtrata cu ?categorie=<slug>.
-    loc: `${BASE_URL}/articole?categorie=${slug}`,
-    lastmod: data.lastmod,
-    priority: '0.6',
-  }));
+  const categoryEntries = Array.from(categoriesMap.entries())
+    .map(([slug, data]) => ({
+      // URL-urile reale de categorie/detaliu folosite in site sunt prin lista de articole,
+      // filtrata cu ?categorie=<slug>.
+      loc: `${BASE_URL}/articole?categorie=${slug}`,
+      lastmod: data.lastmod,
+      priority: '0.6',
+    }))
+    // Ordonăm categoriile după ultima modificare (data + ora), crescător.
+    .sort(
+      (a, b) =>
+        new Date(a.lastmod ?? '').getTime() - new Date(b.lastmod ?? '').getTime()
+    );
   await writeXml(SITEMAP_FILES.categories, buildUrlset(categoryEntries));
 
   const articlesWithImages = published.filter((article) => Boolean(article.imageUrl));
