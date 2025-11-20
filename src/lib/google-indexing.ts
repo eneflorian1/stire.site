@@ -3,6 +3,9 @@ import { loadStoredGoogleCredentials } from './google-service-account';
 
 type SubmissionSuccess = {
   success: true;
+  // Ensure `skipped` exists on all members of `SubmissionResult`
+  // so UI code can safely access `submission.skipped`.
+  skipped?: false;
   status: number;
   body: unknown;
 };
