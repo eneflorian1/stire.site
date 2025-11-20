@@ -239,7 +239,9 @@ ${newsItems}
     }
   }
   const categoryEntries = Array.from(categoriesMap.entries()).map(([slug, data]) => ({
-    loc: `${BASE_URL}/Categorie/${slug}`,
+    // URL-urile reale de categorie/detaliu folosite in site sunt prin lista de articole,
+    // filtrata cu ?categorie=<slug>.
+    loc: `${BASE_URL}/articole?categorie=${slug}`,
     lastmod: data.lastmod,
     priority: '0.6',
   }));

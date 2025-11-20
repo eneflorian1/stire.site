@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import { promises as fs } from 'fs';
 import path from 'path';
+import imageSize from 'image-size';
 import { readJsonFile, writeJsonFile } from './json-store';
 import { getTopics } from './topics';
 import { getCategories } from './categories';
@@ -54,6 +55,11 @@ export type GeminiArticleLog = {
 const DATA_PATH = path.join(process.cwd(), 'data', 'gemini.json');
 const UPLOAD_DIR = path.join(process.cwd(), 'public', 'uploads');
 const PUBLIC_UPLOAD_URL_PREFIX = '/uploads';
+
+// Rezolutie minima pentru imaginile de articol generate automat
+// (evitam logo-uri foarte mici de tip 200x50 etc.)
+const MIN_IMAGE_WIDTH = 600;
+const MIN_IMAGE_HEIGHT = 315;
 
 const defaultState: GeminiState = {
   apiKey: null,
@@ -257,6 +263,20 @@ const downloadImageToUploads = async (
     const arrayBuffer = await response.arrayBuffer();
     const bytes = Buffer.from(arrayBuffer);
     if (!bytes.length || bytes.length > 10 * 1024 * 1024) {
+      return null;
+    }
+
+    // Verificam rezolutia imaginii pentru a evita logo-uri foarte mici
+    try {
+      const dimensions = imageSize(bytes);
+      const width = dimensions.width ?? 0;
+      const height = dimensions.height ?? 0;
+      if (width < MIN_IMAGE_WIDTH || height < MIN_IMAGE_HEIGHT) {
+        // Imagine prea mica pentru a fi folosita ca imagine de articol
+        return null;
+      }
+    } catch {
+      // Daca nu putem determina dimensiunile, mai bine renuntam la imagine
       return null;
     }
 

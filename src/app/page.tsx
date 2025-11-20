@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import HomeShell from '@/components/site/home-shell';
 import MobileNav from '@/components/site/mobile-nav';
 import SiteFooter from '@/components/site/site-footer';
@@ -7,6 +8,15 @@ import { getBannerSettings } from '@/lib/banner';
 import { getCategories } from '@/lib/categories';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  title: 'stire.site – Știri curate, generate și curate automat',
+  description:
+    'stire.site agregă și generează știri în limba română, pe categorii și subiecte actuale, cu sitemap-uri și indexare optimizate pentru Google.',
+  alternates: {
+    canonical: 'https://www.stire.site/',
+  },
+};
 
 export default async function Home() {
   const [articles, categories, banner] = await Promise.all([
