@@ -18,6 +18,9 @@ type SubmissionFailure = {
   skipped?: false;
   status?: number;
   error: string;
+  // Optional raw error payload from Google (for debugging)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  googleErrorBody?: any;
 };
 
 export type SubmissionResult = SubmissionSuccess | SubmissionSkipped | SubmissionFailure;
@@ -95,12 +98,27 @@ export const submitUrlToGoogle = async (url: string): Promise<SubmissionResult> 
     });
 
     const body = await response.json().catch(() => ({}));
+    // eslint-disable-next-line no-console
+    console.log('[Google Indexing] response', {
+      url,
+      status: response.status,
+      ok: response.ok,
+      body,
+    });
 
     if (!response.ok) {
+      // Try to surface a clearer message from Google's error payload, if present
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const anyBody = body as any;
+      const googleErrorMessage: string | undefined = anyBody?.error?.message;
+      const baseMessage =
+        googleErrorMessage ||
+        `Google Indexing API rejected the request: ${response.statusText || 'Unknown error'}`;
       return {
         success: false,
         status: response.status,
-        error: `Google Indexing API rejected the request: ${response.statusText}`,
+        error: `${baseMessage} (status: ${response.status})`,
+        googleErrorBody: anyBody?.error ?? anyBody,
       };
     }
 

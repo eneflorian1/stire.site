@@ -45,9 +45,25 @@ const describeSubmission = (submission: SubmissionResult, status: SMGoogleLog['s
   const httpStatus = 'status' in submission ? submission.status : undefined;
 
   if (status === 'success') {
-    return httpStatus
-      ? `Indexare trimisa (status: ${httpStatus})`
-      : 'Indexare trimisa (status: 200)';
+    // For successful submissions, try to extract more metadata from Google's response
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const anySubmission = submission as any;
+    const body = anySubmission.body as unknown;
+    let extraParts: string[] = [];
+    if (body && typeof body === 'object') {
+      // The Indexing API typically returns urlNotificationMetadata.latestUpdate / latestRemove
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const meta = (body as any).urlNotificationMetadata;
+      const latestUpdate = meta?.latestUpdate;
+      if (latestUpdate) {
+        if (latestUpdate.type) extraParts.push(`type=${latestUpdate.type}`);
+        if (latestUpdate.notifyTime) extraParts.push(`notifyTime=${latestUpdate.notifyTime}`);
+      }
+    }
+
+    const baseStatus = httpStatus ?? 200;
+    const metaText = extraParts.length ? `, ${extraParts.join(', ')}` : '';
+    return `Indexare trimisa (status: ${baseStatus}${metaText})`;
   }
 
   const parts: string[] = [];

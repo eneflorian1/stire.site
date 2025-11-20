@@ -7,6 +7,7 @@ import {
   type ChangeEvent,
   type FormEvent,
 } from 'react';
+import type { SubmissionResult } from '@/lib/google-indexing';
 import { buttonGhost, buttonPrimary, inputStyles, labelStyles, sectionCard } from '../tab-styles';
 
 type SMGoogleLog = {
@@ -16,6 +17,7 @@ type SMGoogleLog = {
   detail: string;
   createdAt: string;
   source: 'auto' | 'manual';
+  submission?: SubmissionResult;
 };
 
 type SMGoogleLink = {
@@ -44,6 +46,7 @@ const SMGoogleTab = () => {
   const [isSavingCredentials, setIsSavingCredentials] = useState(false);
 
   const [activeTab, setActiveTab] = useState<ViewTab>('status');
+  const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
 
   const fetchSmData = useCallback(async () => {
     const response = await fetch('/api/smgoogle');
@@ -88,13 +91,34 @@ const SMGoogleTab = () => {
       if (!response.ok) throw new Error(payload.error ?? 'Nu am putut trimite URL-ul.');
       await fetchSmData();
       setSmUrl('');
-      setMessage(
-        payload.submission?.success
-          ? 'Link trimis cu succes catre Google Indexing.'
-          : payload.submission?.skipped
-          ? 'Trimiterea a fost sarita.'
-          : payload.submission?.error ?? 'Google a returnat o eroare.'
-      );
+      const submission: SubmissionResult | undefined = payload.submission;
+
+      const httpStatus =
+        submission && 'status' in submission && typeof submission.status === 'number'
+          ? submission.status
+          : undefined;
+
+      let baseMessage: string;
+      if (submission?.success) {
+        baseMessage = 'Link trimis catre Google Indexing.';
+      } else if (submission?.skipped) {
+        baseMessage = submission.reason ?? 'Trimiterea a fost sarita.';
+      } else if (submission) {
+        baseMessage = submission.error ?? 'Google a returnat o eroare.';
+      } else {
+        baseMessage = 'Nu am putut interpreta raspunsul de la Google.';
+      }
+
+      // In cazul erorilor, incearca sa afisezi si mesajul brut de la Google (daca exista)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const anySubmission = submission as any;
+      const googleMessage: string | undefined =
+        anySubmission?.googleErrorBody?.message || anySubmission?.googleErrorBody?.error?.message;
+
+      const statusPart = httpStatus ? ` (HTTP ${httpStatus})` : '';
+      const googlePart = googleMessage ? ` | Google: ${googleMessage}` : '';
+
+      setMessage(`${baseMessage}${statusPart}${googlePart}`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Eroare la trimitere.');
     } finally {
@@ -272,31 +296,75 @@ const SMGoogleTab = () => {
           <div>
             <h3 className="text-sm font-semibold text-slate-600">Loguri</h3>
             <div className="mt-3 space-y-3">
-              {logs.map((log) => (
-                <div
-                  key={log.id}
-                  className="rounded-xl border border-slate-100 p-3 text-sm text-slate-600"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium text-slate-900">{log.url}</span>
-                    <span
-                      className={`text-xs ${
-                        log.status === 'success'
-                          ? 'text-emerald-600'
-                          : log.status === 'skipped'
-                          ? 'text-amber-600'
-                          : 'text-red-600'
-                      }`}
-                    >
-                      {log.status.toUpperCase()}
-                    </span>
+              {logs.map((log) => {
+                const isExpanded = expandedLogId === log.id;
+                const submission = log.submission as SubmissionResult | undefined;
+
+                const httpStatus =
+                  submission && 'status' in submission && typeof submission.status === 'number'
+                    ? submission.status
+                    : undefined;
+
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const anySubmission = submission as any;
+                const googlePayload =
+                  anySubmission?.body ?? anySubmission?.googleErrorBody ?? undefined;
+
+                return (
+                  <div
+                    key={log.id}
+                    className="rounded-xl border border-slate-100 p-3 text-sm text-slate-600"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-slate-900">{log.url}</span>
+                      <span
+                        className={`text-xs ${
+                          log.status === 'success'
+                            ? 'text-emerald-600'
+                            : log.status === 'skipped'
+                            ? 'text-amber-600'
+                            : 'text-red-600'
+                        }`}
+                      >
+                        {log.status.toUpperCase()}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400">
+                      {new Date(log.createdAt).toLocaleString('ro-RO')} • {log.source}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">{log.detail}</p>
+
+                    {submission && (
+                      <div className="mt-2 space-y-1 text-[11px] text-slate-500">
+                        <p>
+                          <span className="font-semibold text-slate-700">Status Google API:</span>{' '}
+                          {httpStatus ? `HTTP ${httpStatus}` : 'necunoscut'}
+                          {submission.skipped ? ' • SKIPPED' : ''}
+                        </p>
+
+                        {googlePayload && (
+                          <>
+                            <button
+                              type="button"
+                              className="inline-flex items-center rounded-full border border-slate-200 px-2 py-0.5 text-[10px] font-medium text-slate-600 hover:bg-slate-50"
+                              onClick={() =>
+                                setExpandedLogId(isExpanded ? null : log.id)
+                              }
+                            >
+                              {isExpanded ? 'Ascunde JSON Google' : 'Vezi JSON brut Google'}
+                            </button>
+                            {isExpanded && (
+                              <pre className="mt-1 max-h-64 overflow-auto rounded-lg bg-slate-900/90 p-2 text-[10px] text-slate-50">
+                                {JSON.stringify(googlePayload, null, 2)}
+                              </pre>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <p className="text-xs text-slate-400">
-                    {new Date(log.createdAt).toLocaleString('ro-RO')} • {log.source}
-                  </p>
-                  <p className="mt-1 text-xs text-slate-500">{log.detail}</p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
