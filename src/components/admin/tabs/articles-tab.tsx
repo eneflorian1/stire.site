@@ -95,8 +95,8 @@ const ArticlesTab = () => {
         payload.submission?.success
           ? 'Articol publicat si trimis catre Google Indexing.'
           : payload.submission?.skipped
-          ? 'Articol publicat, dar trimiterea catre Google a fost sarita.'
-          : 'Articol publicat. Verifica logurile Google Indexing.'
+            ? 'Articol publicat, dar trimiterea catre Google a fost sarita.'
+            : 'Articol publicat. Verifica logurile Google Indexing.'
       );
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Eroare la publicarea articolului.');
@@ -152,153 +152,134 @@ const ArticlesTab = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 p-1 text-xs">
-          {(['recente', 'creeaza'] as const).map((tab) => (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => setActiveSubTab(tab)}
-              className={`rounded-full px-3 py-1 transition ${
-                activeSubTab === tab
-                  ? 'bg-slate-900 text-white shadow-sm'
-                  : 'text-slate-600 hover:bg-white'
-              }`}
-            >
-              {tab === 'recente' ? 'Recente' : 'Creeaza articol'}
-            </button>
-          ))}
-        </div>
-      </div>
-
+    <div className="relative min-h-[500px]">
       {activeSubTab === 'creeaza' && (
         <form onSubmit={submitArticle} className={sectionCard} id="admin-create-article">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-900">Creeaza articol</h2>
-            <p className="text-sm text-slate-500">Swift form, actualizari instant.</p>
-          </div>
-          <button type="submit" className={buttonPrimary} disabled={isSubmitting}>
-            {isSubmitting ? 'Publicam...' : 'Publica articolul'}
-          </button>
-        </div>
-        <div className="mt-6 grid gap-4">
-          <div>
-            <label className={labelStyles} htmlFor="title">
-              Titlu
-            </label>
-            <input
-              id="title"
-              name="title"
-              value={form.title}
-              onChange={handleChange}
-              required
-              className={inputStyles}
-              placeholder="Banca Mondiala a anuntat noi reglementari"
-            />
-          </div>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="flex items-center justify-between">
             <div>
-              <label className={labelStyles} htmlFor="category">
-                Categorie
+              <h2 className="text-lg font-semibold text-slate-900">Creeaza articol</h2>
+              <p className="text-sm text-slate-500">Swift form, actualizari instant.</p>
+            </div>
+            <button type="submit" className={buttonPrimary} disabled={isSubmitting}>
+              {isSubmitting ? 'Publicam...' : 'Publica articolul'}
+            </button>
+          </div>
+          <div className="mt-6 grid gap-4">
+            <div>
+              <label className={labelStyles} htmlFor="title">
+                Titlu
               </label>
-              <select
-                id="category"
-                name="category"
-                value={form.category}
+              <input
+                id="title"
+                name="title"
+                value={form.title}
                 onChange={handleChange}
                 required
                 className={inputStyles}
-              >
-                <option value="">Alege o categorie</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.name}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className={labelStyles} htmlFor="imageUrl">
-                URL imagine / GIF
-              </label>
-              <input
-                id="imageUrl"
-                name="imageUrl"
-                value={form.imageUrl}
-                onChange={handleChange}
-                className={inputStyles}
-                placeholder="https://cdn.stire.site/img.jpg"
+                placeholder="Banca Mondiala a anuntat noi reglementari"
               />
             </div>
-          </div>
-          <div>
-            <label className={labelStyles} htmlFor="content">
-              Continut
-            </label>
-            <textarea
-              id="content"
-              name="content"
-              value={form.content}
-              onChange={handleChange}
-              required
-              rows={8}
-              className={inputStyles}
-              placeholder="Text complet al stirii."
-            />
-          </div>
-          <div>
-            <label className={labelStyles} htmlFor="hashtags">
-              Hashtags (optional)
-            </label>
-            <input
-              id="hashtags"
-              name="hashtags"
-              value={form.hashtags}
-              onChange={handleChange}
-              className={inputStyles}
-              placeholder="economic, energie, romania"
-            />
-            <p className="mt-1 text-xs text-slate-500">
-              Separate prin virgula, fara simbolul #. Vor fi afisate la finalul articolului.
-            </p>
-          </div>
-          <div className="grid gap-4 md:grid-cols-3">
-            <div>
-              <label className={labelStyles} htmlFor="status">
-                Status
-              </label>
-              <select
-                id="status"
-                name="status"
-                value={form.status}
-                onChange={handleChange}
-                className={inputStyles}
-              >
-                <option value="published">Publicat</option>
-                <option value="draft">Draft</option>
-              </select>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label className={labelStyles} htmlFor="category">
+                  Categorie
+                </label>
+                <select
+                  id="category"
+                  name="category"
+                  value={form.category}
+                  onChange={handleChange}
+                  required
+                  className={inputStyles}
+                >
+                  <option value="">Alege o categorie</option>
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.name}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={labelStyles} htmlFor="imageUrl">
+                  URL imagine / GIF
+                </label>
+                <input
+                  id="imageUrl"
+                  name="imageUrl"
+                  value={form.imageUrl}
+                  onChange={handleChange}
+                  className={inputStyles}
+                  placeholder="https://cdn.stire.site/img.jpg"
+                />
+              </div>
             </div>
-            <div className="md:col-span-2">
-              <label className={labelStyles} htmlFor="publishedAt">
-                Data publicarii
+            <div>
+              <label className={labelStyles} htmlFor="content">
+                Continut
               </label>
-              <input
-                type="datetime-local"
-                id="publishedAt"
-                name="publishedAt"
-                value={form.publishedAt}
+              <textarea
+                id="content"
+                name="content"
+                value={form.content}
                 onChange={handleChange}
+                required
+                rows={8}
                 className={inputStyles}
+                placeholder="Text complet al stirii."
               />
             </div>
+            <div>
+              <label className={labelStyles} htmlFor="hashtags">
+                Hashtags (optional)
+              </label>
+              <input
+                id="hashtags"
+                name="hashtags"
+                value={form.hashtags}
+                onChange={handleChange}
+                className={inputStyles}
+                placeholder="economic, energie, romania"
+              />
+              <p className="mt-1 text-xs text-slate-500">
+                Separate prin virgula, fara simbolul #. Vor fi afisate la finalul articolului.
+              </p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div>
+                <label className={labelStyles} htmlFor="status">
+                  Status
+                </label>
+                <select
+                  id="status"
+                  name="status"
+                  value={form.status}
+                  onChange={handleChange}
+                  className={inputStyles}
+                >
+                  <option value="published">Publicat</option>
+                  <option value="draft">Draft</option>
+                </select>
+              </div>
+              <div className="md:col-span-2">
+                <label className={labelStyles} htmlFor="publishedAt">
+                  Data publicarii
+                </label>
+                <input
+                  type="datetime-local"
+                  id="publishedAt"
+                  name="publishedAt"
+                  value={form.publishedAt}
+                  onChange={handleChange}
+                  className={inputStyles}
+                />
+              </div>
+            </div>
           </div>
-        </div>
-        {message && (
-          <p className="mt-4 rounded-xl bg-slate-50 p-3 text-sm text-slate-600">{message}</p>
-        )}
-      </form>
+          {message && (
+            <p className="mt-4 rounded-xl bg-slate-50 p-3 text-sm text-slate-600">{message}</p>
+          )}
+        </form>
       )}
 
       {activeSubTab === 'recente' && (
@@ -348,46 +329,60 @@ const ArticlesTab = () => {
               {articles.slice(0, 20).map((article) => (
                 <li
                   key={article.id}
-                  className="flex items-start gap-3 rounded-2xl border border-slate-100 p-4"
+                  className="flex items-center gap-3 py-3 border-b border-slate-100 last:border-0"
                 >
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-xs uppercase text-slate-400">{article.category}</p>
-                        <p className="text-base font-semibold text-slate-900">{article.title}</p>
-                      </div>
-                      <div className="flex flex-col items-end gap-2">
-                        <span className="text-xs text-slate-400">
-                          {new Date(article.publishedAt).toLocaleDateString('ro-RO')}
-                        </span>
-                        <input
-                          type="checkbox"
-                          className="h-4 w-4 rounded border-slate-300 text-slate-900"
-                          checked={selectedIds.includes(article.id)}
-                          onChange={() => toggleArticleSelection(article.id)}
-                        />
-                      </div>
-                    </div>
-                    <p className="mt-2 text-sm text-slate-500">{article.summary}</p>
-                    <div className="mt-3 flex flex-wrap gap-3 text-xs">
-                      <span className={chipStyles}>{article.status}</span>
-                      <span className="font-mono text-slate-500">{article.slug}</span>
-                      <a
-                        href={`/Articol/${article.categorySlug}/${article.slug}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-sky-500 hover:text-sky-600"
-                      >
-                        Vezi live &gt;
-                      </a>
-                    </div>
-                  </div>
+                  <span className="text-xs uppercase text-slate-400 whitespace-nowrap w-24 truncate">
+                    {article.category}
+                  </span>
+
+                  <span className="rounded-full border border-slate-200 px-2 py-0.5 text-[10px] font-medium text-slate-600 whitespace-nowrap">
+                    {article.status}
+                  </span>
+
+                  <a
+                    href={`/Articol/${article.categorySlug}/${article.slug}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex-1 text-sm font-bold text-slate-900 hover:text-blue-600 truncate"
+                    title={article.title}
+                  >
+                    {article.title}
+                  </a>
+
+                  <span className="text-xs text-slate-400 whitespace-nowrap">
+                    {new Date(article.publishedAt).toLocaleDateString('ro-RO')}
+                  </span>
+
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-slate-300 text-slate-900 cursor-pointer"
+                    checked={selectedIds.includes(article.id)}
+                    onChange={() => toggleArticleSelection(article.id)}
+                  />
                 </li>
               ))}
             </ul>
           )}
         </div>
       )}
+
+      <div className="fixed bottom-6 right-6 z-50 w-64 rounded-2xl bg-white p-2 shadow-xl border border-slate-200">
+        <div className="flex rounded-full bg-slate-100 p-1">
+          {(['recente', 'creeaza'] as const).map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setActiveSubTab(tab)}
+              className={`flex-1 rounded-full py-2 text-xs font-medium transition ${activeSubTab === tab
+                ? 'bg-white text-slate-900 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700'
+                }`}
+            >
+              {tab === 'recente' ? 'Recente' : 'Creeaza'}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 };

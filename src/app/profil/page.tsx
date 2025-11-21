@@ -7,6 +7,7 @@ import SiteHeader from '@/components/site/site-header';
 import AuthScreen from '@/components/auth/auth-screen';
 import UserDashboard from '@/components/profile/user-dashboard';
 import { Loader2 } from 'lucide-react';
+import SearchBar from '@/components/site/search-bar';
 
 export default function ProfilePage() {
   const [user, setUser] = useState<any>(null);
@@ -35,7 +36,7 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24">
-      <SiteHeader />
+      <SiteHeader showSearch />
       <main className="mx-auto max-w-4xl px-4 py-10 md:px-6">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">

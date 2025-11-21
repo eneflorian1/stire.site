@@ -15,6 +15,7 @@ import { getSavedArticles } from '@/lib/saved-articles';
 import { filterArticlesByCategories, filterArticlesByKeyword } from '@/lib/ai-filters';
 import { useAIRecommendations } from '@/hooks/use-ai-analysis';
 import type { Article } from '@/lib/articles';
+import SearchBar from '@/components/site/search-bar';
 
 type ViewMode = 'articles' | 'analysis' | 'recommendations' | 'tracking';
 
@@ -122,7 +123,7 @@ const AIPage = () => {
 
     return (
         <div className="min-h-screen bg-slate-50 pb-24">
-            <SiteHeader />
+            <SiteHeader showSearch />
             <main className="mx-auto max-w-6xl px-4 py-10 md:px-6">
                 {/* Header Section */}
 

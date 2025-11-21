@@ -54,6 +54,10 @@ export type GeminiArticleLog = {
   message: string;
   createdAt: string;
   details?: string;
+  error?: string;
+  articleSlug?: string;
+  categoryName?: string;
+  sourceUrl?: string;
 };
 
 const DATA_PATH = path.join(process.cwd(), 'data', 'gemini.json');
@@ -644,7 +648,16 @@ const startContinuousLoop = async () => {
       const result = await generateSingleArticle(state);
 
       // Actualizeaza starea
+      // Actualizeaza starea
       state = await getGeminiState(); // Re-citeste pentru a avea ultima versiune
+
+      // Actualizam timestamp-ul topicului daca a fost procesat (success sau skipped)
+      // Nu actualizam la eroare, pentru a permite retry
+      if (result.topicLabel && result.articleLog) {
+        if (result.articleLog.status === 'success' || result.articleLog.status === 'skipped') {
+          state.topicLastPosted[result.topicLabel] = new Date().toISOString();
+        }
+      }
 
       if (result.articleLog) {
         state.articleLogs = [result.articleLog, ...state.articleLogs].slice(0, 200);

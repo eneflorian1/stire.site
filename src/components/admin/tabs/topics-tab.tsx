@@ -146,140 +146,152 @@ const TopicsTab = () => {
   };
 
   return (
-    <div className={sectionCard}>
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-
-        </div>
-        <div className="flex gap-2">
-          {(['manual', 'trends', 'empty'] as TopicTab[]).map((tab) => (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => setActiveTab(tab)}
-              className={tab === activeTab ? `${buttonPrimary} !bg-sky-600` : buttonGhost}
-            >
-              {tab === 'manual' && 'Manual'}
-              {tab === 'trends' && 'Trends'}
-              {tab === 'empty' && 'Gol'}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {activeTab === 'manual' && (
-        <div className="mt-6 grid gap-6 md:grid-cols-[1fr,1fr]">
-          <form onSubmit={submitTopic} className="space-y-4">
+    <div className="relative min-h-[500px]">
+      <div className={sectionCard}>
+        {activeTab === 'manual' && (
+          <div className="mt-6">
             <div>
-              <label className={labelStyles} htmlFor="topic-label">
-                Topic manual
-              </label>
-              <input
-                id="topic-label"
-                value={form.label}
-                onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                  setForm({ label: event.target.value })
-                }
-                className={inputStyles}
-                placeholder="Introdu un subiect manual"
-                required
-              />
+              <h3 className="text-sm font-semibold text-slate-600">
+                Topicuri manuale ({manualTopics.length})
+              </h3>
+              <div className="mt-3 space-y-2">
+                {manualTopics.map((topic) => (
+                  <div
+                    key={topic.id}
+                    className="rounded-xl border border-slate-100 px-4 py-2 text-sm text-slate-600"
+                  >
+                    {topic.label}
+                  </div>
+                ))}
+              </div>
             </div>
-            <button type="submit" className={buttonPrimary}>
-              Adauga topic
-            </button>
-          </form>
-          <div>
-            <h3 className="text-sm font-semibold text-slate-600">
-              Topicuri manuale ({manualTopics.length})
-            </h3>
-            <div className="mt-3 space-y-2">
-              {manualTopics.map((topic) => (
+          </div>
+        )}
+
+        {activeTab === 'trends' && (
+          <div className="mt-6">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <p className="text-sm text-slate-600">
+                Importa cele mai noi cautari Google Trends pentru Romania.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className={buttonGhost}
+                  onClick={() => setSelectedTrendIds(trendTopics.map((t) => t.id))}
+                  disabled={trendTopics.length === 0}
+                >
+                  Selecteaza toate
+                </button>
+                <button
+                  type="button"
+                  onClick={deleteSelectedTrends}
+                  className={buttonGhost}
+                  disabled={isImporting || selectedTrendIds.length === 0}
+                >
+                  Sterge selectate
+                </button>
+              </div>
+            </div>
+            <div className="mt-4 space-y-2">
+              {trendTopics.map((topic) => (
                 <div
                   key={topic.id}
-                  className="rounded-xl border border-slate-100 px-4 py-2 text-sm text-slate-600"
+                  className="flex items-center gap-3 rounded-xl border border-slate-100 px-4 py-2 text-sm text-slate-600"
                 >
-                  {topic.label}
+                  <div className="flex w-full items-center justify-between gap-3">
+                    <div>
+                      <p className="font-medium text-slate-900">{topic.label}</p>
+                      <span className="text-xs text-slate-400">
+                        {new Date(topic.createdAt).toLocaleString('ro-RO')}
+                      </span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-slate-300 text-slate-900"
+                      checked={selectedTrendIds.includes(topic.id)}
+                      onChange={() => toggleTrendSelection(topic.id)}
+                    />
+                  </div>
                 </div>
               ))}
+              {trendTopics.length === 0 && (
+                <div className="rounded-2xl border border-dashed border-slate-200 p-4 text-center text-xs text-slate-500">
+                  Nu exista topicuri importate inca.
+                </div>
+              )}
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {activeTab === 'trends' && (
-        <div className="mt-6">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <p className="text-sm text-slate-600">
-              Importa cele mai noi cautari Google Trends pentru Romania.
-            </p>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                className={buttonGhost}
-                onClick={() => setSelectedTrendIds(trendTopics.map((t) => t.id))}
-                disabled={trendTopics.length === 0}
-              >
-                Selecteaza toate
-              </button>
-              <button
-                type="button"
-                onClick={deleteSelectedTrends}
-                className={buttonGhost}
-                disabled={isImporting || selectedTrendIds.length === 0}
-              >
-                Sterge selectate
-              </button>
-              <button
-                type="button"
-                onClick={importTrends}
-                className={buttonPrimary}
-                disabled={isImporting}
-              >
-                {isImporting ? 'Importam...' : 'Importa topicuri'}
-              </button>
-            </div>
+        {activeTab === 'empty' && (
+          <div className="mt-6 rounded-xl border border-dashed border-slate-200 p-6 text-center text-sm text-slate-500">
+            Gol – foloseste taburile Manual sau Trends pentru a popula lista.
           </div>
-          <div className="mt-4 space-y-2">
-            {trendTopics.map((topic) => (
-              <div
-                key={topic.id}
-                className="flex items-center gap-3 rounded-xl border border-slate-100 px-4 py-2 text-sm text-slate-600"
-              >
-                <div className="flex w-full items-center justify-between gap-3">
-                  <div>
-                    <p className="font-medium text-slate-900">{topic.label}</p>
-                    <span className="text-xs text-slate-400">
-                      {new Date(topic.createdAt).toLocaleString('ro-RO')}
-                    </span>
-                  </div>
+        )}
+
+        {message && (
+          <p className="mt-6 rounded-xl bg-slate-50 p-3 text-sm text-slate-600">{message}</p>
+        )}
+      </div>
+
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-4 items-end">
+        {activeTab === 'manual' && (
+          <div className="w-80 rounded-2xl bg-white p-4 shadow-xl border border-slate-200">
+            <form onSubmit={submitTopic}>
+              <h2 className="text-base font-bold text-slate-900 mb-3">Topic Manual</h2>
+              <div className="space-y-3">
+                <div>
                   <input
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-slate-300 text-slate-900"
-                    checked={selectedTrendIds.includes(topic.id)}
-                    onChange={() => toggleTrendSelection(topic.id)}
+                    id="topic-label"
+                    value={form.label}
+                    onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                      setForm({ label: event.target.value })
+                    }
+                    className="w-full rounded-xl border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 focus:border-slate-900 focus:ring-0"
+                    placeholder="Introdu un subiect manual"
+                    required
                   />
                 </div>
+                <button type="submit" className="w-full rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800">
+                  Adauga topic
+                </button>
               </div>
+            </form>
+          </div>
+        )}
+
+        {activeTab === 'trends' && (
+          <button
+            type="button"
+            onClick={importTrends}
+            className="rounded-xl bg-slate-900 px-6 py-3 text-sm font-medium text-white shadow-xl hover:bg-slate-800 disabled:opacity-50"
+            disabled={isImporting}
+          >
+            {isImporting ? 'Importam...' : 'Importa topicuri'}
+          </button>
+        )}
+
+        <div className="w-64 rounded-2xl bg-white p-2 shadow-xl border border-slate-200">
+          <div className="flex rounded-full bg-slate-100 p-1">
+            {(['manual', 'trends', 'empty'] as TopicTab[]).map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveTab(tab)}
+                className={`flex-1 rounded-full py-2 text-xs font-medium transition ${activeTab === tab
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
+                  }`}
+              >
+                {tab === 'manual' && 'Manual'}
+                {tab === 'trends' && 'Trends'}
+                {tab === 'empty' && 'Gol'}
+              </button>
             ))}
-            {trendTopics.length === 0 && (
-              <div className="rounded-2xl border border-dashed border-slate-200 p-4 text-center text-xs text-slate-500">
-                Nu exista topicuri importate inca.
-              </div>
-            )}
           </div>
         </div>
-      )}
-
-      {activeTab === 'empty' && (
-        <div className="mt-6 rounded-xl border border-dashed border-slate-200 p-6 text-center text-sm text-slate-500">
-          Gol – foloseste taburile Manual sau Trends pentru a popula lista.
-        </div>
-      )}
-
-      {message && (
-        <p className="mt-6 rounded-xl bg-slate-50 p-3 text-sm text-slate-600">{message}</p>
-      )}
+      </div>
     </div>
   );
 };

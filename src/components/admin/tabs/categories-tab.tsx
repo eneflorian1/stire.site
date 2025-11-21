@@ -90,37 +90,11 @@ const CategoriesTab = () => {
   };
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[1fr,1fr]">
-      <form onSubmit={submitCategory} className={sectionCard}>
-        <h2 className="text-lg font-semibold text-slate-900">Adauga categorie</h2>
-        <div className="mt-6 space-y-4">
-          <div>
-            <label className={labelStyles} htmlFor="category-name">
-              Nume
-            </label>
-            <input
-              id="category-name"
-              name="name"
-              value={form.name}
-              onChange={handleChange}
-              required
-              className={inputStyles}
-              placeholder="Economie, Politic..."
-            />
-          </div>
-          <button type="submit" className={buttonPrimary} disabled={isSubmitting}>
-            {isSubmitting ? 'Salvam...' : 'Salveaza categoria'}
-          </button>
-          {message && (
-            <p className="rounded-xl bg-slate-50 p-3 text-sm text-slate-600">{message}</p>
-          )}
-        </div>
-      </form>
+    <div className="relative min-h-[500px]">
       <div className={sectionCard}>
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <h2 className="text-lg font-semibold text-slate-900">Categorii existente</h2>
-            <span className={chipStyles}>Total: {categories.length}</span>
+            <h2 className="text-lg font-semibold text-slate-900">Categorii existente {categories.length}</h2>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -150,7 +124,6 @@ const CategoriesTab = () => {
               <div className="flex w-full items-center justify-between gap-3">
                 <div>
                   <span className="font-medium text-slate-900">{category.name}</span>
-                  <span className="ml-2 text-xs text-slate-400">{category.slug}</span>
                 </div>
                 <input
                   type="checkbox"
@@ -167,6 +140,34 @@ const CategoriesTab = () => {
             </li>
           )}
         </ul>
+      </div>
+
+      <div className="fixed bottom-6 right-6 z-50 w-80 rounded-2xl bg-white p-4 shadow-xl border border-slate-200">
+        <form onSubmit={submitCategory}>
+          <h2 className="text-base font-bold text-slate-900 mb-3">Adauga categorie</h2>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block" htmlFor="category-name">
+                Nume
+              </label>
+              <input
+                id="category-name"
+                name="name"
+                value={form.name}
+                onChange={handleChange}
+                required
+                className="w-full rounded-xl border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 focus:border-slate-900 focus:ring-0"
+                placeholder="Economie, Politic..."
+              />
+            </div>
+            <button type="submit" className="w-full rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50" disabled={isSubmitting}>
+              {isSubmitting ? 'Salvam...' : 'Salveaza categoria'}
+            </button>
+            {message && (
+              <p className="rounded-lg bg-slate-50 p-2 text-xs text-slate-600">{message}</p>
+            )}
+          </div>
+        </form>
       </div>
     </div>
   );

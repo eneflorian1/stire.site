@@ -7,6 +7,7 @@ import SiteHeader from '@/components/site/site-header';
 import ArticleCard from '@/components/site/article-card';
 import { getSavedArticles } from '@/lib/saved-articles';
 import type { Article } from '@/lib/articles';
+import SearchBar from '@/components/site/search-bar';
 
 const SavedPage = () => {
   const [savedArticles, setSavedArticles] = useState<Article[]>([]);
@@ -49,7 +50,7 @@ const SavedPage = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24">
-      <SiteHeader />
+      <SiteHeader showSearch />
       <main className="mx-auto max-w-6xl px-4 py-10 md:px-6">
         <h1 className="text-2xl font-semibold text-slate-900">Articole salvate</h1>
         <p className="mt-2 text-sm text-slate-500">

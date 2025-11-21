@@ -4,11 +4,11 @@ import Link from 'next/link';
 import { Bookmark, Grid, Home, Sparkles, User } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
-type NavKey = 'home' | 'categorii' | 'ai' | 'salvate' | 'profil';
+type NavKey = 'home' | 'admin' | 'ai' | 'salvate' | 'profil';
 
 const navItems: { id: NavKey; label: string; href: string; icon: LucideIcon }[] = [
-  { id: 'home', label: 'Home', href: '/', icon: Home },
-  { id: 'categorii', label: 'Categorii', href: '/categorii', icon: Grid },
+  { id: 'home', label: 'Acasa', href: '/', icon: Home },
+  { id: 'admin', label: 'Admin', href: '/admin', icon: Grid },
   { id: 'ai', label: 'AI', href: '/ai', icon: Sparkles },
   { id: 'salvate', label: 'Salvate', href: '/salvate', icon: Bookmark },
   { id: 'profil', label: 'Profil', href: '/profil', icon: User },
