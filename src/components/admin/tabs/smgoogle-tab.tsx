@@ -175,10 +175,7 @@ const SMGoogleTab = () => {
   return (
     <div className={sectionCard}>
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-900">SMGoogle</h2>
-          <p className="text-sm text-slate-500">Monitorizare indexare + instructiuni JSON.</p>
-        </div>
+
         <div className="flex items-center gap-2">
           <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 p-1 text-xs">
             {(['status', 'logs'] as ViewTab[]).map((tab) => (
@@ -186,11 +183,10 @@ const SMGoogleTab = () => {
                 key={tab}
                 type="button"
                 onClick={() => setActiveTab(tab)}
-                className={`px-3 py-1 rounded-full transition ${
-                  activeTab === tab
+                className={`px-3 py-1 rounded-full transition ${activeTab === tab
                     ? 'bg-slate-900 text-white shadow-sm'
                     : 'text-slate-600 hover:bg-white'
-                }`}
+                  }`}
               >
                 {tab === 'status' ? 'Status' : 'Loguri'}
               </button>
@@ -318,13 +314,12 @@ const SMGoogleTab = () => {
                     <div className="flex items-center justify-between">
                       <span className="font-medium text-slate-900">{log.url}</span>
                       <span
-                        className={`text-xs ${
-                          log.status === 'success'
+                        className={`text-xs ${log.status === 'success'
                             ? 'text-emerald-600'
                             : log.status === 'skipped'
-                            ? 'text-amber-600'
-                            : 'text-red-600'
-                        }`}
+                              ? 'text-amber-600'
+                              : 'text-red-600'
+                          }`}
                       >
                         {log.status.toUpperCase()}
                       </span>

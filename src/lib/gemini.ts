@@ -28,8 +28,12 @@ export type GeminiState = {
   prevRunAt: string | null;
   prevRunCreated: number;
   prevRunProcessedTopics: number;
+  penultimateRunAt: string | null;
+  penultimateRunCreated: number;
   // log detaliat per articol
   articleLogs: GeminiArticleLog[];
+  // tracking pentru topicuri (cand au fost postate ultima data)
+  topicLastPosted: Record<string, string>; // topic label -> ISO timestamp
 };
 
 export type GeminiLog = {
@@ -77,7 +81,10 @@ const defaultState: GeminiState = {
   prevRunAt: null,
   prevRunCreated: 0,
   prevRunProcessedTopics: 0,
+  penultimateRunAt: null,
+  penultimateRunCreated: 0,
   articleLogs: [],
+  topicLastPosted: {},
 };
 
 const MISSING_KEY_ERROR = 'Missing Gemini API key';
@@ -140,6 +147,8 @@ const normalizeState = (state: Partial<GeminiState>): GeminiState => ({
     typeof state.prevRunProcessedTopics === 'number'
       ? state.prevRunProcessedTopics
       : 0,
+  penultimateRunAt: state.penultimateRunAt ?? null,
+  penultimateRunCreated: typeof state.penultimateRunCreated === 'number' ? state.penultimateRunCreated : 0,
   articleLogs: (state.articleLogs ?? []).map((log) => ({
     id: log.id ?? randomUUID(),
     topicLabel: log.topicLabel ?? '',
@@ -149,12 +158,13 @@ const normalizeState = (state: Partial<GeminiState>): GeminiState => ({
       log.status === 'error'
         ? 'error'
         : log.status === 'skipped'
-        ? 'skipped'
-        : 'success',
+          ? 'skipped'
+          : 'success',
     message: log.message ?? '',
     details: log.details,
     createdAt: log.createdAt ?? new Date().toISOString(),
   })),
+  topicLastPosted: state.topicLastPosted && typeof state.topicLastPosted === 'object' ? state.topicLastPosted : {},
 });
 
 const normalizeHashtags = (raw: unknown): string | undefined => {
@@ -314,7 +324,8 @@ const callGeminiForTopic = async (
     '- content: articol complet de stiri in limba romana (300–500 cuvinte), 3–6 paragrafe, clar, informativ, obiectiv; fara etichete precum "Rezumat:" sau "Titlu:"\n' +
     '  Paragrafele trebuie SEPARATE PRIN LINII GOALE (\\n\\n). Evita subtitluri, liste, bullet-uri sau marcaje decorative\n' +
     '  Primul paragraf trebuie sa fie LEAD-ul: rezuma ideea centrala, concis, autonom (nu depinde de paragrafele urmatoare), 2–4 fraze, max 400 de caractere.\n' +
-    '  Include 3–6 ancore HTML (<a href=...>) pe cuvinte/expresii CHEIE care apar si in "hashtags". Leaga-le catre surse autoritative (Wikipedia, site oficial, .gov/.edu) daca sunt clare; altfel omite.\n' +
+    '  Include 3–6 ancore HTML (<a href=...>) pe cuvinte/expresii CHEIE. Leaga-le catre surse autoritative DIVERSE (site-uri de stiri reputate, site-uri oficiale, .gov, .edu, Wikipedia etc.).\n' +
+    '  IMPORTANT: Nu folosi acelasi domeniu de doua ori (de exemplu, maxim 1 link catre Wikipedia, maxim 1 catre un site de stiri specific etc.). Diversifica sursele!\n' +
     '  Ancorele trebuie sa aiba: target="_blank" si rel="nofollow noopener". Nu face overlinking si nu folosi linkuri promotionale.\n' +
     '- hashtags: 5–7 cuvinte-cheie pentru SEO, derivate din title si content, fara #, separate prin virgula\n' +
     `Lista categorii permise: ${categoryOptions.join(', ')}.\n` +
@@ -373,9 +384,18 @@ const callGeminiForTopic = async (
   };
 };
 
-const generateArticlesFromTopics = async (state: GeminiState, maxArticles = 3) => {
+// Genereaza un singur articol din topicurile disponibile
+// Respecta regula de 24h per topic si verifica duplicate in ultimele 24h
+const generateSingleArticle = async (state: GeminiState): Promise<{
+  created: boolean;
+  topicLabel: string | null;
+  articleLog: GeminiArticleLog | null;
+}> => {
   const allTopics = await getTopics();
+  const now = Date.now();
+  const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
 
+  // Filtreaza topicurile pe baza configuratiei
   const topics = allTopics.filter((topic) => {
     if (topic.source === 'manual' && !state.useManualTopics) return false;
     if (topic.source === 'trend' && !state.useTrendTopics) return false;
@@ -383,139 +403,148 @@ const generateArticlesFromTopics = async (state: GeminiState, maxArticles = 3) =
   });
 
   if (!topics.length) {
-    return { created: 0, processedTopics: 0, articleLogs: [] as GeminiArticleLog[] };
+    return { created: false, topicLabel: null, articleLog: null };
   }
 
-  const [categories, existingArticles] = await Promise.all([getCategories(), getArticles()]);
-  const categoryNames = categories.map((category) => category.name);
-
-  let created = 0;
-  let processedTopics = 0;
-  const articleLogs: GeminiArticleLog[] = [];
-
+  // Gaseste primul topic care nu a fost postat in ultimele 24h
+  let selectedTopic = null;
   for (const topic of topics) {
-    if (created >= maxArticles) break;
-
     const label = topic.label.trim();
     if (!label) continue;
-    processedTopics += 1;
 
-    const labelLower = label.toLowerCase();
-    const alreadyExists = existingArticles.some(
-      (article) =>
-        article.title.toLowerCase().includes(labelLower) ||
-        article.summary.toLowerCase().includes(labelLower)
-    );
-    if (alreadyExists) {
-      articleLogs.unshift(
-        createArticleLog({
-          topicLabel: label,
-          status: 'skipped',
-          message: 'Articol deja existent pentru acest topic (titlu sau rezumat asemanator).',
-        })
-      );
-      continue;
+    const lastPosted = state.topicLastPosted[label];
+    if (lastPosted) {
+      const lastPostedTime = new Date(lastPosted).getTime();
+      const timeSinceLastPost = now - lastPostedTime;
+      if (timeSinceLastPost < TWENTY_FOUR_HOURS) {
+        // Skip - postat in ultimele 24h
+        continue;
+      }
     }
 
-    try {
-      if (!state.apiKey) {
-        articleLogs.unshift(
-          createArticleLog({
-            topicLabel: label,
-            status: 'error',
-            message: 'Cheia Gemini lipseste in timpul generarii articolului.',
-          })
-        );
-        // eslint-disable-next-line no-continue
-        continue;
-      }
-
-      const generated = await callGeminiForTopic(state.apiKey, label, categoryNames);
-      const content = generated.content?.trim();
-      if (!content) {
-        articleLogs.unshift(
-          createArticleLog({
-            topicLabel: label,
-            status: 'skipped',
-            message: 'Gemini nu a returnat continut pentru acest topic.',
-          })
-        );
-        continue;
-      }
-
-      const firstParagraph = content.split(/\n\s*\n/)[0] ?? content;
-      const mappedCategory =
-        (generated.category && String(generated.category).trim()) ||
-        categoryNames[0] ||
-        'General';
-
-      let imageUrl: string | undefined;
-      let imageSourceUrl: string | undefined;
-      try {
-        const remoteUrl = await searchImageForTopic(label);
-        if (remoteUrl) {
-          imageSourceUrl = remoteUrl;
-          const downloaded = await downloadImageToUploads(remoteUrl, label);
-          if (downloaded) {
-            imageUrl = downloaded.imageUrl;
-            imageSourceUrl = downloaded.sourceUrl;
-          } else {
-            // daca nu reusim sa salvam local, renuntam la imagine pentru a evita erorile 400/404
-            // din surse externe care blocheaza hotlinking
-            imageUrl = undefined;
-          }
-        }
-      } catch {
-        // daca nu gasim imagine, continuam fara a bloca generarea articolului
-      }
-
-      const article = await createArticle(
-        {
-          title: generated.title.slice(0, 120),
-          content,
-          category: mappedCategory,
-          hashtags: normalizeHashtags(generated.hashtags),
-          imageUrl,
-          imageSourceUrl,
-        },
-        { matchExistingCategory: true }
-      );
-
-      articleLogs.unshift(
-        createArticleLog({
-          topicLabel: label,
-          articleTitle: article.title,
-          articleId: article.id,
-          status: 'success',
-          message: 'Articol generat si salvat cu succes.',
-        })
-      );
-
-      try {
-        const submission = await submitUrlToGoogle(article.url);
-        await logSMGoogleSubmission(article.url, submission, 'auto');
-      } catch {
-        // Ignoram erorile de logging/submit pentru a nu opri intregul ciclu
-      }
-
-      created += 1;
-      } catch (error) {
-        const message =
-          error instanceof Error ? error.message : 'Eroare neasteptata la generarea articolului.';
-        articleLogs.unshift(
-          createArticleLog({
-            topicLabel: label,
-            status: 'error',
-            message: 'Eroare la generarea articolului.',
-            details: message,
-          })
-        );
-        // eslint-disable-next-line no-continue
-        continue;
-      }
+    selectedTopic = { ...topic, label };
+    break;
   }
 
-  return { created, processedTopics, articleLogs };
+  if (!selectedTopic) {
+    // Toate topicurile au fost postate in ultimele 24h
+    return { created: false, topicLabel: null, articleLog: null };
+  }
+
+  const label = selectedTopic.label;
+  const labelLower = label.toLowerCase();
+
+  // Verifica duplicate in articolele din ultimele 24h
+  const existingArticles = await getArticles();
+  const recentArticles = existingArticles.filter((article) => {
+    const articleTime = new Date(article.createdAt).getTime();
+    return now - articleTime < TWENTY_FOUR_HOURS;
+  });
+
+  const isDuplicate = recentArticles.some(
+    (article) =>
+      article.title.toLowerCase().includes(labelLower) ||
+      article.summary.toLowerCase().includes(labelLower) ||
+      (article.content && article.content.toLowerCase().includes(labelLower))
+  );
+
+  if (isDuplicate) {
+    const log = createArticleLog({
+      topicLabel: label,
+      status: 'skipped',
+      message: 'Topic similar gasit in articolele din ultimele 24h.',
+    });
+    return { created: false, topicLabel: label, articleLog: log };
+  }
+
+  // Genereaza articolul
+  try {
+    if (!state.apiKey) {
+      const log = createArticleLog({
+        topicLabel: label,
+        status: 'error',
+        message: 'Cheia Gemini lipseste.',
+      });
+      return { created: false, topicLabel: label, articleLog: log };
+    }
+
+    const categories = await getCategories();
+    const categoryNames = categories.map((category) => category.name);
+
+    const generated = await callGeminiForTopic(state.apiKey, label, categoryNames);
+    const content = generated.content?.trim();
+    if (!content) {
+      const log = createArticleLog({
+        topicLabel: label,
+        status: 'skipped',
+        message: 'Gemini nu a returnat continut pentru acest topic.',
+      });
+      return { created: false, topicLabel: label, articleLog: log };
+    }
+
+    const mappedCategory =
+      (generated.category && String(generated.category).trim()) ||
+      categoryNames[0] ||
+      'General';
+
+    let imageUrl: string | undefined;
+    let imageSourceUrl: string | undefined;
+    try {
+      const remoteUrl = await searchImageForTopic(label);
+      if (remoteUrl) {
+        imageSourceUrl = remoteUrl;
+        const downloaded = await downloadImageToUploads(remoteUrl, label);
+        if (downloaded) {
+          imageUrl = downloaded.imageUrl;
+          imageSourceUrl = downloaded.sourceUrl;
+        }
+      }
+    } catch {
+      // Continua fara imagine
+    }
+
+    const article = await createArticle(
+      {
+        title: generated.title.slice(0, 120),
+        content,
+        category: mappedCategory,
+        hashtags: normalizeHashtags(generated.hashtags),
+        imageUrl,
+        imageSourceUrl,
+      },
+      { matchExistingCategory: true }
+    );
+
+    const log = createArticleLog({
+      topicLabel: label,
+      articleTitle: article.title,
+      articleId: article.id,
+      status: 'success',
+      message: 'Articol generat si salvat cu succes.',
+    });
+
+    try {
+      const submission = await submitUrlToGoogle(article.url);
+      await logSMGoogleSubmission(article.url, submission, 'auto');
+    } catch {
+      // Ignoram erorile de logging
+    }
+
+    // Actualizeaza timestamp-ul pentru acest topic
+    state.topicLastPosted[label] = new Date().toISOString();
+
+    return { created: true, topicLabel: label, articleLog: log };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : 'Eroare neasteptata la generarea articolului.';
+    const log = createArticleLog({
+      topicLabel: label,
+      status: 'error',
+      message: 'Eroare la generarea articolului.',
+      details: message,
+    });
+    return { created: false, topicLabel: label, articleLog: log };
+  }
 };
 
 export const getGeminiState = async (): Promise<GeminiState> => {
@@ -590,6 +619,109 @@ export const deleteGeminiArticleLogs = async (ids?: string[]) => {
   return persistState(state);
 };
 
+// Global interval pentru loop-ul continuu
+// Folosim globalThis pentru a preveni duplicate in development (HMR)
+declare global {
+  // eslint-disable-next-line no-var
+  var geminiLoopTimeout: NodeJS.Timeout | null | undefined;
+}
+
+// Functie pentru loop-ul continuu de generare
+const startContinuousLoop = async () => {
+  const INTERVAL_MS = 12000; // 12 secunde
+
+  const runLoop = async () => {
+    try {
+      // Citeste starea curenta
+      let state = await getGeminiState();
+
+      // Verifica daca trebuie sa oprim loop-ul
+      if (state.status !== 'running') {
+        return;
+      }
+
+      // Incearca sa generezi un articol
+      const result = await generateSingleArticle(state);
+
+      // Actualizeaza starea
+      state = await getGeminiState(); // Re-citeste pentru a avea ultima versiune
+
+      if (result.articleLog) {
+        state.articleLogs = [result.articleLog, ...state.articleLogs].slice(0, 200);
+      }
+
+      if (result.created) {
+        state.totalArticlesCreated = (state.totalArticlesCreated ?? 0) + 1;
+        state.lastRunAt = new Date().toISOString();
+        state.lastRunCreated = (state.lastRunCreated ?? 0) + 1;
+        state.lastRunProcessedTopics = (state.lastRunProcessedTopics ?? 0) + 1;
+        state.logs.unshift(
+          createLogEntry(`Articol generat: ${result.topicLabel}`, 'info')
+        );
+      } else if (result.topicLabel) {
+        // Topic procesat dar nu s-a creat articol
+        state.logs.unshift(
+          createLogEntry(`Topic procesat: ${result.topicLabel} - ${result.articleLog?.message || 'skipped'}`, 'info')
+        );
+      } else {
+        // Nu mai sunt topicuri disponibile
+        state.logs.unshift(
+          createLogEntry('Toate topicurile au fost procesate in ultimele 24h. Asteptam...', 'info')
+        );
+      }
+
+      state.logs = state.logs.slice(0, 100);
+
+      // Salveaza starea
+      await persistState(state);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Eroare in loop-ul continuu';
+      console.error('Gemini loop error:', message);
+
+      try {
+        const state = await getGeminiState();
+        state.lastError = message;
+        state.logs.unshift(createLogEntry(`Eroare: ${message}`, 'error'));
+        state.logs = state.logs.slice(0, 100);
+        await persistState(state);
+      } catch {
+        // Ignore persistence errors
+      }
+    } finally {
+      // Programeaza urmatoarea rulare doar daca starea e inca running
+      // Verificam din nou starea din fisier pentru a fi siguri ca nu s-a dat stop intre timp
+      try {
+        const currentState = await getGeminiState();
+        if (currentState.status === 'running') {
+          global.geminiLoopTimeout = setTimeout(runLoop, INTERVAL_MS);
+        } else {
+          global.geminiLoopTimeout = null;
+        }
+      } catch {
+        // Daca nu putem citi starea, ne oprim
+        global.geminiLoopTimeout = null;
+      }
+    }
+  };
+
+  // Ruleaza imediat prima data
+  await runLoop();
+};
+
+export const initGeminiLoop = async () => {
+  try {
+    const state = await getGeminiState();
+    if (state.status === 'running' && !global.geminiLoopTimeout) {
+      console.log('Restarting Gemini loop...');
+      startContinuousLoop().catch((error) => {
+        console.error('Failed to auto-restart continuous loop:', error);
+      });
+    }
+  } catch (error) {
+    console.error('Failed to init Gemini loop:', error);
+  }
+};
+
 export const runGeminiAction = async (action: 'start' | 'stop' | 'reset') => {
   const state = await getGeminiState();
   const now = new Date().toISOString();
@@ -602,59 +734,37 @@ export const runGeminiAction = async (action: 'start' | 'stop' | 'reset') => {
       state.status = 'running';
       state.startedAt = now;
       state.lastError = null;
-      state.logs.unshift(createLogEntry('Gemini a fost pornit.', 'info', now));
+      state.logs.unshift(createLogEntry('Gemini automation a fost pornit.', 'info', now));
 
-      try {
-        const previousRunAt = state.lastRunAt;
-        const previousRunCreated = state.lastRunCreated ?? 0;
-        const previousRunProcessed = state.lastRunProcessedTopics ?? 0;
+      // Reseteaza contoarele pentru noua rulare
+      state.penultimateRunAt = state.prevRunAt;
+      state.penultimateRunCreated = state.prevRunCreated ?? 0;
+      state.prevRunAt = state.lastRunAt;
+      state.prevRunCreated = state.lastRunCreated ?? 0;
+      state.prevRunProcessedTopics = state.lastRunProcessedTopics ?? 0;
+      state.lastRunCreated = 0;
+      state.lastRunProcessedTopics = 0;
 
-        const { created, processedTopics, articleLogs } = await generateArticlesFromTopics(
-          state,
-          3
-        );
+      await persistState(state);
 
-        state.totalArticlesCreated = (state.totalArticlesCreated ?? 0) + created;
-        state.prevRunAt = previousRunAt;
-        state.prevRunCreated = previousRunCreated;
-        state.prevRunProcessedTopics = previousRunProcessed;
-        state.lastRunAt = now;
-        state.lastRunCreated = created;
-        state.lastRunProcessedTopics = processedTopics;
-        state.articleLogs = [...articleLogs, ...state.articleLogs].slice(0, 200);
-        if (created > 0) {
-          state.logs.unshift(
-            createLogEntry(
-              `Gemini a creat ${created} articole noi din ${processedTopics} topicuri.`,
-              'info'
-            )
-          );
-        } else {
-          state.logs.unshift(
-            createLogEntry(
-              processedTopics > 0
-                ? 'Gemini nu a gasit topicuri noi pentru generare (deja acoperite).'
-                : 'Nu exista topicuri disponibile pentru generare.',
-              'info'
-            )
-          );
-        }
-      } catch (error) {
-        const message =
-          error instanceof Error
-            ? error.message
-            : 'Eroare neasteptata la generarea articolelor cu Gemini.';
-        state.lastError = message;
-        state.logs.unshift(createLogEntry(`Eroare la generarea articolelor: ${message}`, 'error'));
-      } finally {
-        state.status = 'stopped';
+      // Porneste loop-ul continuu in background daca nu ruleaza deja
+      if (!global.geminiLoopTimeout) {
+        startContinuousLoop().catch((error) => {
+          console.error('Failed to start continuous loop:', error);
+        });
       }
     }
   }
 
   if (action === 'stop') {
     state.status = 'stopped';
-    state.logs.unshift(createLogEntry('Gemini a fost oprit.', 'info', now));
+    state.logs.unshift(createLogEntry('Gemini automation a fost oprit.', 'info', now));
+
+    // Opreste loop-ul
+    if (global.geminiLoopTimeout) {
+      clearTimeout(global.geminiLoopTimeout);
+      global.geminiLoopTimeout = null;
+    }
   }
 
   if (action === 'reset') {
@@ -662,6 +772,12 @@ export const runGeminiAction = async (action: 'start' | 'stop' | 'reset') => {
     state.startedAt = null;
     state.lastError = state.apiKey ? null : MISSING_KEY_ERROR;
     state.logs.unshift(createLogEntry('Starea Gemini a fost resetata.', 'info', now));
+
+    // Opreste loop-ul daca ruleaza
+    if (global.geminiLoopTimeout) {
+      clearTimeout(global.geminiLoopTimeout);
+      global.geminiLoopTimeout = null;
+    }
   }
 
   state.logs = state.logs.slice(0, 100);

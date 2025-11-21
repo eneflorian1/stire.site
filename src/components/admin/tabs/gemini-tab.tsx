@@ -9,6 +9,15 @@ import {
   labelStyles,
   sectionCard,
 } from '../tab-styles';
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 
 const GeminiTab = () => {
   const [state, setState] = useState<GeminiState | null>(null);
@@ -18,18 +27,29 @@ const GeminiTab = () => {
   const [activeSubTab, setActiveSubTab] = useState<'auto' | 'credentials' | 'stats'>('auto');
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
   const [selectedLogIds, setSelectedLogIds] = useState<string[]>([]);
+  const [serverStartedAt, setServerStartedAt] = useState<string | null>(null);
 
   const fetchGemini = useCallback(async () => {
     const response = await fetch('/api/gemini');
     if (!response.ok) throw new Error('Nu am putut incarca starea Gemini.');
     const data = await response.json();
     setState(data.state);
+    setServerStartedAt(data.serverStartedAt);
     setInput(data.state?.credentialsJson ?? data.state?.apiKey ?? '');
   }, []);
 
   useEffect(() => {
     fetchGemini().catch((error) => setMessage(error instanceof Error ? error.message : null));
   }, [fetchGemini]);
+
+  // Polling pentru actualizare automata cand ruleaza
+  useEffect(() => {
+    if (state?.status !== 'running') return;
+    const interval = setInterval(() => {
+      fetchGemini().catch(() => { }); // ignoram erorile de polling
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [state?.status, fetchGemini]);
 
   const updateCredentials = async () => {
     setIsBusy(true);
@@ -43,6 +63,7 @@ const GeminiTab = () => {
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error ?? 'Nu am putut salva cheia.');
       setState(payload.state);
+      if (payload.serverStartedAt) setServerStartedAt(payload.serverStartedAt);
       setMessage('Credentialele au fost salvate.');
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Eroare la salvarea cheii.');
@@ -63,6 +84,7 @@ const GeminiTab = () => {
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error ?? 'Nu am putut salva configuratia.');
       setState(payload.state);
+      if (payload.serverStartedAt) setServerStartedAt(payload.serverStartedAt);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Eroare la salvarea configuratiei.');
     } finally {
@@ -87,6 +109,7 @@ const GeminiTab = () => {
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error ?? 'Nu am putut sterge logurile.');
       setState(payload.state);
+      if (payload.serverStartedAt) setServerStartedAt(payload.serverStartedAt);
       setSelectedLogIds([]);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Eroare la stergerea logurilor.');
@@ -107,6 +130,7 @@ const GeminiTab = () => {
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error ?? 'Actiune esuata.');
       setState(payload.state);
+      if (payload.serverStartedAt) setServerStartedAt(payload.serverStartedAt);
       setMessage(`Actiunea ${action} a fost executata.`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Eroare la executie.');
@@ -115,15 +139,18 @@ const GeminiTab = () => {
     }
   };
 
-  const lastRunSummary =
-    state && (state.lastRunCreated > 0 || state.lastRunProcessedTopics > 0)
-      ? `${state.lastRunCreated} articole din ${state.lastRunProcessedTopics} topicuri`
-      : '-';
+  const formatTime = (iso: string | null) => {
+    if (!iso) return '-';
+    return new Date(iso).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' });
+  };
 
-  const prevRunSummary =
-    state && (state.prevRunCreated > 0 || state.prevRunProcessedTopics > 0)
-      ? `${state.prevRunCreated} articole din ${state.prevRunProcessedTopics} topicuri`
-      : '-';
+  const lastRunSummary = state?.prevRunAt
+    ? `${formatTime(state.prevRunAt)} (${state.prevRunCreated})`
+    : '-';
+
+  const penultimateRunSummary = state?.penultimateRunAt
+    ? `${formatTime(state.penultimateRunAt)} (${state.penultimateRunCreated})`
+    : '-';
 
   const hasApiKey = Boolean(state?.apiKey);
   const isRunning = state?.status === 'running';
@@ -158,36 +185,27 @@ const GeminiTab = () => {
   return (
     <div className={sectionCard}>
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-900">Gemini automation</h2>
-          <p className="text-sm text-slate-500">
-            Generare automata de articole din topicuri manuale si Google Trends.
-          </p>
-        </div>
+
         <div className="flex items-center gap-3 text-xs font-medium">
           <button
             type="button"
-            className={`inline-flex items-center gap-1 rounded-full px-3 py-1 ${
-              isRunning ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
-            }`}
+            className={`inline-flex items-center gap-1 rounded-full px-3 py-1 ${isRunning ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+              }`}
           >
             <span
-              className={`h-2 w-2 rounded-full ${
-                isRunning ? 'bg-emerald-500' : 'bg-rose-500'
-              }`}
+              className={`h-2 w-2 rounded-full ${isRunning ? 'bg-emerald-500' : 'bg-rose-500'
+                }`}
             />
             RUN
           </button>
           <button
             type="button"
-            className={`inline-flex items-center gap-1 rounded-full px-3 py-1 ${
-              hasApiKey ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
-            }`}
+            className={`inline-flex items-center gap-1 rounded-full px-3 py-1 ${hasApiKey ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+              }`}
           >
             <span
-              className={`h-2 w-2 rounded-full ${
-                hasApiKey ? 'bg-emerald-500' : 'bg-rose-500'
-              }`}
+              className={`h-2 w-2 rounded-full ${hasApiKey ? 'bg-emerald-500' : 'bg-rose-500'
+                }`}
             />
             API
           </button>
@@ -204,11 +222,10 @@ const GeminiTab = () => {
             key={tab.id}
             type="button"
             onClick={() => setActiveSubTab(tab.id as typeof activeSubTab)}
-            className={`rounded-full px-3 py-1 ${
-              activeSubTab === tab.id
-                ? 'bg-slate-900 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
+            className={`rounded-full px-3 py-1 ${activeSubTab === tab.id
+              ? 'bg-slate-900 text-white'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
           >
             {tab.label}
           </button>
@@ -222,21 +239,15 @@ const GeminiTab = () => {
               <div className="space-y-1 text-xs text-slate-500">
                 <p>
                   <span className="font-semibold text-slate-800">Articole:</span>{' '}
-                  {state?.totalArticlesCreated ?? 0} create in total
+                  {state?.lastRunCreated ?? 0}
                 </p>
                 <p>
                   <span className="font-semibold text-slate-800">Ultima rulare:</span>{' '}
-                  {state?.lastRunAt
-                    ? new Date(state.lastRunAt).toLocaleString('ro-RO')
-                    : '-'}{' '}
-                  ({lastRunSummary})
+                  {lastRunSummary}
                 </p>
                 <p>
                   <span className="font-semibold text-slate-800">Penultima rulare:</span>{' '}
-                  {state?.prevRunAt
-                    ? new Date(state.prevRunAt).toLocaleString('ro-RO')
-                    : '-'}{' '}
-                  ({prevRunSummary})
+                  {penultimateRunSummary}
                 </p>
                 <p>
                   <span className="font-semibold text-slate-800">Uptime:</span> {uptimeLabel}
@@ -337,13 +348,12 @@ const GeminiTab = () => {
                         className="h-3 w-3 rounded border-slate-300 text-slate-900"
                       />
                       <span
-                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                          log.status === 'success'
-                            ? 'bg-emerald-100 text-emerald-700'
-                            : log.status === 'skipped'
+                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${log.status === 'success'
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : log.status === 'skipped'
                             ? 'bg-amber-100 text-amber-700'
                             : 'bg-rose-100 text-rose-700'
-                        }`}
+                          }`}
                       >
                         {log.status.toUpperCase()}
                       </span>
@@ -409,48 +419,56 @@ const GeminiTab = () => {
               {isBusy ? 'Salvam...' : 'Salveaza credentialele'}
             </button>
           </div>
-          <div className="grid gap-3 rounded-2xl border border-slate-100 p-4 text-sm">
-            <div className="flex items-center justify-between gap-3">
-              <span>Tip credentiale</span>
-              <span className="font-semibold text-slate-900">
-                {state?.credentialsJson
-                  ? 'JSON configurat'
-                  : state?.apiKey
-                  ? 'Cheie API setata'
-                  : 'Lipsesc'}
-              </span>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <span>Stare cheie</span>
-              <span
-                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${
-                  hasApiKey ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
-                }`}
-              >
-                <span
-                  className={`h-2 w-2 rounded-full ${
-                    hasApiKey ? 'bg-emerald-500' : 'bg-rose-500'
-                  }`}
-                />
-                {hasApiKey ? 'Valida' : 'Lipsa'}
-              </span>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <span>Articole Gemini create (total)</span>
-              <span className="font-semibold text-slate-900">
-                {state?.totalArticlesCreated ?? 0}
-              </span>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <span>Ultima rulare</span>
-              <span className="font-semibold text-slate-900">
-                {state?.lastRunAt ? new Date(state.lastRunAt).toLocaleString('ro-RO') : '-'}
-              </span>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <span>Eroare recenta</span>
-              <span className="font-semibold text-red-500">{state?.lastError ?? '-'}</span>
-            </div>
+          <div className="overflow-hidden rounded-2xl border border-slate-100">
+            <table className="w-full text-left text-xs">
+              <tbody className="divide-y divide-slate-100 bg-white">
+                <tr>
+                  <td className="px-4 py-3 text-slate-500">Tip credentiale</td>
+                  <td className="px-4 py-3 font-semibold text-slate-900">
+                    {state?.credentialsJson
+                      ? 'JSON configurat'
+                      : state?.apiKey
+                        ? 'Cheie API setata'
+                        : 'Lipsesc'}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 text-slate-500">Stare cheie</td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${hasApiKey ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+                        }`}
+                    >
+                      <span
+                        className={`h-1.5 w-1.5 rounded-full ${hasApiKey ? 'bg-emerald-500' : 'bg-rose-500'
+                          }`}
+                      />
+                      {hasApiKey ? 'Valida' : 'Lipsa'}
+                    </span>
+                  </td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 text-slate-500">Articole Gemini create (total)</td>
+                  <td className="px-4 py-3 font-semibold text-slate-900">
+                    {state?.totalArticlesCreated ?? 0}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 text-slate-500">Server pornit</td>
+                  <td className="px-4 py-3 font-semibold text-slate-900">
+                    {serverStartedAt
+                      ? new Date(serverStartedAt).toLocaleString('ro-RO')
+                      : '-'}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-3 text-slate-500">Eroare recenta</td>
+                  <td className="px-4 py-3 font-semibold text-red-500">
+                    {state?.lastError ?? '-'}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       )}
@@ -459,58 +477,98 @@ const GeminiTab = () => {
         <div className="mt-6 grid gap-6 lg:grid-cols-[1.4fr,1.2fr]">
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-slate-800">Articole pe zile</h3>
-            <div className="space-y-2 rounded-2xl border border-slate-100 p-4">
-              {statsByDay.entries.map(([day, count]) => (
-                <div key={day} className="flex items-center gap-3 text-xs">
-                  <span className="w-20 text-slate-500">
-                    {new Date(day).toLocaleDateString('ro-RO', {
-                      day: '2-digit',
-                      month: '2-digit',
-                    })}
-                  </span>
-                  <div className="flex-1 rounded-full bg-slate-100">
-                    <div
-                      className="h-2 rounded-full bg-slate-900"
-                      style={{ width: `${(count / statsByDay.max) * 100}%` }}
+            <div className="h-[300px] w-full rounded-2xl border border-slate-100 p-4">
+              {statsByDay.entries.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={statsByDay.entries
+                      .map(([date, count]) => ({
+                        date: new Date(date).toLocaleDateString('ro-RO', {
+                          day: '2-digit',
+                          month: '2-digit',
+                        }),
+                        count,
+                      }))
+                      .reverse()}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fontSize: 10, fill: '#64748b' }}
+                      axisLine={false}
+                      tickLine={false}
+                      dy={10}
                     />
-                  </div>
-                  <span className="w-8 text-right text-slate-700">{count}</span>
-                </div>
-              ))}
-              {statsByDay.entries.length === 0 && (
-                <p className="text-center text-xs text-slate-400">
-                  Nu exista inca suficiente date pentru statistici. Ruleaza AUTO pentru a genera
-                  articole.
+                    <YAxis
+                      tick={{ fontSize: 10, fill: '#64748b' }}
+                      axisLine={false}
+                      tickLine={false}
+                      dx={-10}
+                      allowDecimals={false}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        borderRadius: '12px',
+                        border: 'none',
+                        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                      }}
+                      cursor={{ stroke: '#cbd5e1', strokeWidth: 1 }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="count"
+                      stroke="#0f172a"
+                      strokeWidth={2}
+                      dot={{ r: 3, fill: '#0f172a', strokeWidth: 0 }}
+                      activeDot={{ r: 5, fill: '#0f172a', strokeWidth: 0 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="flex h-full items-center justify-center text-xs text-slate-400">
+                  Nu exista inca suficiente date pentru statistici.
                 </p>
               )}
             </div>
           </div>
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-slate-800">Topicuri utilizate</h3>
-            <div className="space-y-2 rounded-2xl border border-slate-100 p-4 text-xs">
+            <div className="overflow-hidden rounded-2xl border border-slate-100">
               {articleLogs.length > 0 ? (
-                Array.from(
-                  articleLogs.reduce((map, log) => {
-                    const key = log.topicLabel || 'Necunoscut';
-                    const current = map.get(key) ?? { total: 0, success: 0 };
-                    current.total += 1;
-                    if (log.status === 'success') current.success += 1;
-                    map.set(key, current);
-                    return map;
-                  }, new Map<string, { total: number; success: number }>())
-                )
-                  .sort((a, b) => (a[1].success < b[1].success ? 1 : -1))
-                  .slice(0, 20)
-                  .map(([topic, info]) => (
-                    <div key={topic} className="flex items-center justify-between gap-3">
-                      <span className="line-clamp-1 text-slate-700">{topic}</span>
-                      <span className="text-slate-500">
-                        {info.success}/{info.total} articole
-                      </span>
-                    </div>
-                  ))
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 text-slate-500">
+                    <tr>
+                      <th className="px-4 py-2 font-medium">Topic</th>
+                      <th className="px-4 py-2 text-right font-medium">Succes/Total</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 bg-white">
+                    {Array.from(
+                      articleLogs.reduce((map, log) => {
+                        const key = log.topicLabel || 'Necunoscut';
+                        const current = map.get(key) ?? { total: 0, success: 0 };
+                        current.total += 1;
+                        if (log.status === 'success') current.success += 1;
+                        map.set(key, current);
+                        return map;
+                      }, new Map<string, { total: number; success: number }>())
+                    )
+                      .sort((a, b) => (a[1].success < b[1].success ? 1 : -1))
+                      .slice(0, 20)
+                      .map(([topic, info]) => (
+                        <tr key={topic}>
+                          <td className="px-4 py-2 text-slate-700">
+                            <span className="line-clamp-1">{topic}</span>
+                          </td>
+                          <td className="px-4 py-2 text-right text-slate-500">
+                            {info.success}/{info.total}
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
               ) : (
-                <p className="text-center text-xs text-slate-400">
+                <p className="p-4 text-center text-xs text-slate-400">
                   Nu exista inca date despre topicuri. Ruleaza AUTO pentru a genera articole.
                 </p>
               )}

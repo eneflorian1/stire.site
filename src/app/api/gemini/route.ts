@@ -5,12 +5,17 @@ import {
   runGeminiAction,
   updateGeminiApiKey,
   updateGeminiConfig,
+  initGeminiLoop,
 } from '@/lib/gemini';
+
+// Initializam loop-ul daca e cazul (server restart)
+initGeminiLoop().catch(console.error);
 
 export async function GET() {
   try {
     const state = await getGeminiState();
-    return NextResponse.json({ state });
+    const serverStartedAt = new Date(Date.now() - process.uptime() * 1000).toISOString();
+    return NextResponse.json({ state, serverStartedAt });
   } catch (error) {
     console.error('/api/gemini GET error', error);
     return NextResponse.json({ error: 'Nu am putut incarca starea Gemini.' }, { status: 500 });
@@ -39,7 +44,8 @@ export async function POST(request: NextRequest) {
     } else {
       return NextResponse.json({ error: 'Payload invalid.' }, { status: 400 });
     }
-    return NextResponse.json({ state });
+    const serverStartedAt = new Date(Date.now() - process.uptime() * 1000).toISOString();
+    return NextResponse.json({ state, serverStartedAt });
   } catch (error) {
     console.error('/api/gemini POST error', error);
     return NextResponse.json({ error: 'Nu am putut actualiza Gemini.' }, { status: 500 });

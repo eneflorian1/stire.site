@@ -149,8 +149,7 @@ const TopicsTab = () => {
     <div className={sectionCard}>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">Topicuri editoriale</h2>
-          <p className="text-sm text-slate-500">Manual, Trends, Gol.</p>
+
         </div>
         <div className="flex gap-2">
           {(['manual', 'trends', 'empty'] as TopicTab[]).map((tab) => (

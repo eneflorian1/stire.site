@@ -89,11 +89,7 @@ const BannerTab = () => {
 
   return (
     <form onSubmit={submitBanner} className={sectionCard}>
-      <h2 className="text-lg font-semibold text-slate-900">Gestionare anunturi</h2>
-      <p className="text-sm text-slate-500">
-        Bannerul principal afisat pe homepage in zona de reclama. Poti folosi fie un URL extern,
-        fie poti incarca o imagine/GIF din calculator.
-      </p>
+
       <div className="mt-6 space-y-4">
         <div>
           <label className={labelStyles} htmlFor="banner-title">

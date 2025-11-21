@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import ArticlesTab from '@/components/admin/tabs/articles-tab';
+import AITab from '@/components/admin/tabs/ai-tab';
 import BannerTab from '@/components/admin/tabs/banner-tab';
 import CategoriesTab from '@/components/admin/tabs/categories-tab';
 import GeminiTab from '@/components/admin/tabs/gemini-tab';
 import SMGoogleTab from '@/components/admin/tabs/smgoogle-tab';
 import TopicsTab from '@/components/admin/tabs/topics-tab';
 
-type Tab = 'articole' | 'categorii' | 'topicuri' | 'smgoogle' | 'gemini' | 'anunturi';
+type Tab = 'articole' | 'categorii' | 'topicuri' | 'smgoogle' | 'gemini' | 'ai' | 'anunturi';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState<Tab>('articole');
@@ -42,6 +43,8 @@ const AdminDashboard = () => {
         return <SMGoogleTab />;
       case 'gemini':
         return <GeminiTab />;
+      case 'ai':
+        return <AITab />;
       case 'anunturi':
         return <BannerTab />;
       default:
@@ -61,6 +64,8 @@ const AdminDashboard = () => {
         return 'SMGoogle';
       case 'gemini':
         return 'Gemini';
+      case 'ai':
+        return 'AI Analysis';
       case 'anunturi':
         return 'Anunturi';
       default:

@@ -1,22 +1,55 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import MobileNav from '@/components/site/mobile-nav';
 import SiteFooter from '@/components/site/site-footer';
 import SiteHeader from '@/components/site/site-header';
+import AuthScreen from '@/components/auth/auth-screen';
+import UserDashboard from '@/components/profile/user-dashboard';
+import { Loader2 } from 'lucide-react';
 
-const ProfilePage = () => (
-  <div className="min-h-screen bg-slate-50 pb-24">
-    <SiteHeader />
-    <main className="mx-auto max-w-4xl px-4 py-10 md:px-6">
-      <h1 className="text-2xl font-semibold text-slate-900">Profilul meu</h1>
-      <p className="mt-2 text-sm text-slate-500">
-        Zona de profil va include preferinte, notificari si acces rapid la zonele de lucru.
-      </p>
-      <div className="mt-6 rounded-2xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-500">
-        In curand vei putea personaliza experienta stire.site din aceasta sectiune.
-      </div>
-    </main>
-    <SiteFooter />
-    <MobileNav active="profil" />
-  </div>
-);
+export default function ProfilePage() {
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-export default ProfilePage;
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    try {
+      const res = await fetch('/api/auth/me');
+      if (res.ok) {
+        const data = await res.json();
+        setUser(data.user);
+      } else {
+        setUser(null);
+      }
+    } catch (error) {
+      console.error('Auth check failed:', error);
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 pb-24">
+      <SiteHeader />
+      <main className="mx-auto max-w-4xl px-4 py-10 md:px-6">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            <p className="mt-4 text-sm text-slate-500">Se încarcă profilul...</p>
+          </div>
+        ) : user ? (
+          <UserDashboard user={user} onLogout={() => setUser(null)} />
+        ) : (
+          <AuthScreen onLogin={setUser} />
+        )}
+      </main>
+      <SiteFooter />
+      <MobileNav active="profil" />
+    </div>
+  );
+}

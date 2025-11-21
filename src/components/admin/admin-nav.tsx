@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Menu } from 'lucide-react';
 
-type AdminTab = 'articole' | 'categorii' | 'topicuri' | 'smgoogle' | 'gemini' | 'anunturi';
+type AdminTab = 'articole' | 'categorii' | 'topicuri' | 'smgoogle' | 'gemini' | 'ai' | 'anunturi';
 
 const adminTabs: { id: AdminTab; label: string }[] = [
   { id: 'articole', label: 'Articole' },
@@ -11,6 +11,7 @@ const adminTabs: { id: AdminTab; label: string }[] = [
   { id: 'topicuri', label: 'Topicuri' },
   { id: 'smgoogle', label: 'SMGoogle' },
   { id: 'gemini', label: 'Gemini' },
+  { id: 'ai', label: 'AI' },
   { id: 'anunturi', label: 'Anunturi' },
 ];
 
@@ -36,11 +37,10 @@ const AdminNav = () => {
               key={tab.id}
               type="button"
               onClick={() => changeTab(tab.id)}
-              className={`rounded-full px-3 py-1 transition ${
-                activeTab === tab.id
+              className={`rounded-full px-3 py-1 transition ${activeTab === tab.id
                   ? 'bg-slate-900 text-white shadow-sm'
                   : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-              }`}
+                }`}
             >
               {tab.label}
             </button>
