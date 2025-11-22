@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Activity, ArrowRight, Trash2, AlertTriangle } from 'lucide-react';
+import { Plus, Activity, ArrowRight, Trash2, AlertTriangle, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import AddTopicDialog from './add-topic-dialog';
 import TimelineView from './timeline-view';
 
@@ -11,6 +11,49 @@ export default function TrackingTab() {
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+    // Get trend label matching timeline-view
+    const getTrendLabel = (trend: string) => {
+        switch (trend) {
+            case 'scadere': return 'Scădere';
+            case 'stabil': return 'Stabil';
+            case 'crestere': return 'Creștere';
+            case 'incert': return 'Incert';
+            default: return 'Incert';
+        }
+    };
+
+    // Get trend color matching timeline-view
+    const getTrendColor = (trend: string, isSelected: boolean) => {
+        if (isSelected) return 'text-white';
+        switch (trend) {
+            case 'scadere': return 'text-red-600';
+            case 'crestere': return 'text-green-600';
+            case 'stabil': return 'text-slate-500';
+            case 'incert': return 'text-slate-400';
+            default: return 'text-slate-400';
+        }
+    };
+
+    // Get trend icon matching timeline-view
+    const getTrendIcon = (trend: string) => {
+        switch (trend) {
+            case 'scadere': return <TrendingDown className="h-3 w-3" />;
+            case 'crestere': return <TrendingUp className="h-3 w-3" />;
+            case 'stabil': return <Minus className="h-3 w-3" />;
+            case 'incert': return <Minus className="h-3 w-3" />;
+            default: return <Minus className="h-3 w-3" />;
+        }
+    };
+
+    // Get future trend from latest history event
+    const getFutureTrend = (topic: any) => {
+        if (!topic.history || topic.history.length === 0) {
+            return 'incert';
+        }
+        const latestEvent = topic.history[0];
+        return latestEvent.trends?.future || 'incert';
+    };
 
     const fetchTopics = async () => {
         try {
@@ -116,47 +159,58 @@ export default function TrackingTab() {
                             </button>
                         </div>
                     ) : (
-                        topics.map(topic => (
-                            <div
-                                key={topic.id}
-                                className={`relative w-full rounded-xl border transition hover:shadow-md ${selectedTopicId === topic.id
-                                    ? 'bg-violet-600 border-violet-600 text-white shadow-lg shadow-violet-200'
-                                    : 'bg-white border-slate-200 text-slate-900 hover:border-violet-200'
-                                    }`}
-                            >
-                                <button
-                                    onClick={() => setSelectedTopicId(topic.id)}
-                                    className="w-full text-left p-4 pr-12"
-                                >
-                                    <div className="flex justify-between items-start mb-2">
-                                        <span className="font-bold capitalize">{topic.keyword}</span>
-                                        {topic.history.length > 0 && (
-                                            <span className={`text-xs px-1.5 py-0.5 rounded ${selectedTopicId === topic.id ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
-                                                }`}>
-                                                {topic.history.length} update-uri
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div className="flex items-center justify-between text-xs opacity-80">
-                                        <span>{topic.domain || 'General'}</span>
-                                        <span>{new Date(topic.lastUpdated).toLocaleDateString()}</span>
-                                    </div>
-                                </button>
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setDeleteConfirmId(topic.id);
-                                    }}
-                                    className={`absolute top-3 right-3 p-2 rounded-lg transition ${selectedTopicId === topic.id
-                                        ? 'hover:bg-white/20 text-white'
-                                        : 'hover:bg-red-50 text-slate-400 hover:text-red-600'
+                        topics.map(topic => {
+                            const futureTrend = getFutureTrend(topic);
+                            const isSelected = selectedTopicId === topic.id;
+
+                            return (
+                                <div
+                                    key={topic.id}
+                                    className={`relative w-full rounded-xl border transition hover:shadow-md ${isSelected
+                                        ? 'bg-violet-600 border-violet-600 text-white shadow-lg shadow-violet-200'
+                                        : 'bg-white border-slate-200 text-slate-900 hover:border-violet-200'
                                         }`}
-                                    aria-label="Șterge subiect"
                                 >
-                                    <Trash2 className="h-4 w-4" />
-                                </button>
-                            </div>
-                        ))
+                                    <button
+                                        onClick={() => setSelectedTopicId(topic.id)}
+                                        className="w-full text-left p-4 pr-12"
+                                    >
+                                        <div className="flex justify-between items-start mb-2">
+                                            <span className="font-bold capitalize">{topic.keyword}</span>
+                                            {topic.history.length > 0 && (
+                                                <span className={`text-xs px-1.5 py-0.5 rounded ${isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
+                                                    }`}>
+                                                    {topic.history.length} update-uri
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center justify-between text-xs opacity-80">
+                                            <span>{topic.domain || 'General'}</span>
+                                            <div className="flex items-center gap-1">
+                                                <span className={`flex items-center gap-0.5 ${getTrendColor(futureTrend, isSelected)}`}>
+                                                    {getTrendIcon(futureTrend)}
+                                                    <span className="text-[10px]">{getTrendLabel(futureTrend)}</span>
+                                                </span>
+                                                <span className="ml-1">{new Date(topic.lastUpdated).toLocaleDateString()}</span>
+                                            </div>
+                                        </div>
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setDeleteConfirmId(topic.id);
+                                        }}
+                                        className={`absolute top-3 right-3 p-2 rounded-lg transition ${isSelected
+                                            ? 'hover:bg-white/20 text-white'
+                                            : 'hover:bg-red-50 text-slate-400 hover:text-red-600'
+                                            }`}
+                                        aria-label="Șterge subiect"
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </button>
+                                </div>
+                            );
+                        })
                     )}
                 </div>
             </div>

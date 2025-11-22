@@ -7,7 +7,6 @@ import SearchBar from './search-bar';
 
 type Props = {
   actions?: ReactNode;
-  showSearch?: boolean;
 };
 
 const navItems = [
@@ -18,7 +17,7 @@ const navItems = [
   { label: 'Profil', href: '/profil' },
 ];
 
-const SiteHeader = ({ actions, showSearch = false }: Props) => {
+const SiteHeader = ({ actions }: Props) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');
 
@@ -36,16 +35,14 @@ const SiteHeader = ({ actions, showSearch = false }: Props) => {
           Stire
         </Link>
 
-        {showSearch && (
-          <div className="flex-1">
-            <SearchBar
-              value={searchValue}
-              onChange={handleSearchChange}
-              placeholder="Cauta stiri, categorii, topicuri..."
-              variant="minimal"
-            />
-          </div>
-        )}
+        <div className="flex-1">
+          <SearchBar
+            value={searchValue}
+            onChange={handleSearchChange}
+            placeholder="Cauta stiri, categorii, topicuri..."
+            variant="minimal"
+          />
+        </div>
 
         <button
           type="button"

@@ -36,9 +36,9 @@ const SearchBar = ({
   return (
     <form
       onSubmit={handleSubmit}
-      className={`flex items-center gap-2 ${isMinimal
-          ? 'rounded-full border border-slate-200 bg-slate-50 px-3 py-1 shadow-none'
-          : 'rounded-3xl border border-slate-200 bg-white p-2 shadow-sm'
+      className={`flex items-center gap-2 transition-all ${isMinimal
+        ? 'rounded-full border border-slate-200 bg-white px-4 py-2 shadow-sm hover:shadow-md focus-within:border-blue-400 focus-within:shadow-md focus-within:ring-2 focus-within:ring-blue-100'
+        : 'rounded-3xl border border-slate-200 bg-white p-2 shadow-sm hover:shadow-md focus-within:border-blue-400 focus-within:shadow-lg'
         } ${className}`}
     >
       <input
@@ -46,15 +46,15 @@ const SearchBar = ({
         onChange={handleChange}
         placeholder={placeholder}
         className={`w-full text-sm text-slate-700 outline-none ${isMinimal
-            ? 'bg-transparent px-2 py-1 placeholder:text-slate-400'
-            : 'rounded-2xl border border-transparent bg-slate-50 px-4 py-2 focus:border-slate-200 focus:bg-white'
+          ? 'bg-transparent px-2 py-0.5 placeholder:text-slate-400'
+          : 'rounded-2xl border border-transparent bg-slate-50 px-4 py-2 transition-all focus:border-slate-200 focus:bg-white focus:shadow-sm'
           }`}
       />
       <button
         type="submit"
-        className={`flex items-center justify-center transition ${isMinimal
-            ? 'h-8 w-8 rounded-full bg-slate-900 text-white hover:bg-slate-800'
-            : 'h-10 w-10 rounded-2xl bg-[#5678ff] text-white hover:bg-[#4a63d9]'
+        className={`flex shrink-0 items-center justify-center transition-all ${isMinimal
+          ? 'h-8 w-8 rounded-full bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-md hover:shadow-lg hover:from-blue-700 hover:to-blue-800 active:scale-95'
+          : 'h-10 w-10 rounded-2xl bg-gradient-to-br from-[#5678ff] to-[#4a63d9] text-white shadow-md hover:shadow-lg hover:from-[#4a63d9] hover:to-[#3d52b8] active:scale-95'
           }`}
         aria-label="Cauta"
       >

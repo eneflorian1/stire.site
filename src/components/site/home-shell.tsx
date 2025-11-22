@@ -51,23 +51,22 @@ const HomeShell = ({ articles, categories, banner }: Props) => {
             {featured ? (
               <ArticleCard article={featured} variant="featured" />
             ) : (
-              <EmptyState message="Nu am gasit articole pentru cautarea ta." />
+              <div className="flex min-h-[400px] items-center justify-center rounded-3xl border border-dashed border-slate-200 bg-white p-10">
+                <div className="text-center">
+                  <p className="text-lg font-medium text-slate-900">Nu am gasit articole pentru cautarea ta.</p>
+                  <p className="mt-2 text-sm text-slate-500">Incearca alte cuvinte cheie sau navighează prin categorii.</p>
+                </div>
+              </div>
             )}
           </div>
           {banner?.imageUrl && <BannerPanel banner={banner} />}
         </div>
         <div className="flex flex-col gap-4 md:col-span-1">
-          {side.length > 0 ? (
+          {side.length > 0 &&
             side.map((article) => (
               <ArticleCard key={article.id} article={article} variant="compact" />
             ))
-          ) : (
-            featured && (
-              <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-500">
-                Utilizeaza campul de cautare pentru a explora alte articole.
-              </div>
-            )
-          )}
+          }
         </div>
       </section>
 

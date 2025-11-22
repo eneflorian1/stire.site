@@ -26,7 +26,7 @@ export default async function Home() {
   ]);
   return (
     <div className="min-h-screen bg-slate-50 pb-24 text-slate-900">
-      <SiteHeader showSearch />
+      <SiteHeader />
       <main>
         <HomeShell articles={articles} categories={categories} banner={banner} />
       </main>
