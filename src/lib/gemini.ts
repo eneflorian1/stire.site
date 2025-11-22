@@ -285,7 +285,7 @@ const searchRecentNewsForTopic = async (query: string): Promise<boolean> => {
 const searchImageForTopic = async (
   query: string,
   logger?: (msg: string) => void
-): Promise<string | null> => {
+): Promise<string[]> => {
   const log = logger ?? (() => { });
 
   try {
@@ -306,7 +306,7 @@ const searchImageForTopic = async (
 
     if (!response.ok) {
       log(`❌ Eroare HTTP la cautare imagine: ${response.status}`);
-      return null;
+      return [];
     }
 
     const html = await response.text();
@@ -321,20 +321,62 @@ const searchImageForTopic = async (
       if (!candidate.toLowerCase().includes('gstatic')) {
         candidates.push(candidate);
       }
-      if (candidates.length >= 5) break;
+      if (candidates.length >= 10) break; // Crestem la 10 pentru mai multe optiuni
     }
 
     log(`🖼️  Imagini candidate gasite: ${candidates.length}`);
     if (candidates.length > 0) {
-      log(`✅ Prima imagine: ${candidates[0].substring(0, 80)}...`);
+      log(`✅ Candidati disponibili: ${candidates.length}`);
+      candidates.slice(0, 3).forEach((url, idx) => {
+        log(`   ${idx + 1}. ${url.substring(0, 60)}...`);
+      });
     } else {
       log(`⚠️  Nu s-au gasit imagini candidate`);
     }
 
-    return candidates[0] ?? null;
+    return candidates;
   } catch (error) {
     log(`💥 Eroare la cautare imagine: ${error instanceof Error ? error.message : 'Eroare necunoscuta'}`);
-    return null;
+    return [];
+  }
+};
+
+// Verifica daca imaginea salvata este valida (nu corupta, dimensiune minima)
+const verifyDownloadedImage = async (
+  filePath: string,
+  logger?: (msg: string) => void
+): Promise<boolean> => {
+  const log = logger ?? (() => { });
+
+  try {
+    // Verificam daca fisierul exista si are dimensiune minima
+    const stats = await fs.stat(filePath);
+    const sizeKB = Math.round(stats.size / 1024);
+
+    log(`🔍 Verificare fisier salvat: ${sizeKB} KB`);
+
+    // Dimensiune minima: 5 KB (evitam fisiere goale sau corupte)
+    if (stats.size < 5 * 1024) {
+      log(`❌ Fisier prea mic: ${sizeKB} KB (minim 5 KB) - probabil corupt`);
+      // Stergem fisierul corupt
+      await fs.unlink(filePath).catch(() => { });
+      return false;
+    }
+
+    // Incercam sa citim imaginea cu Sharp pentru a verifica integritatea
+    try {
+      const metadata = await sharp(filePath).metadata();
+      log(`✅ Imagine valida: ${metadata.width}x${metadata.height}px, format: ${metadata.format}`);
+      return true;
+    } catch (sharpError) {
+      log(`❌ Imagine corupta sau format invalid: ${sharpError instanceof Error ? sharpError.message : 'Eroare'}`);
+      // Stergem fisierul corupt
+      await fs.unlink(filePath).catch(() => { });
+      return false;
+    }
+  } catch (error) {
+    log(`❌ Eroare la verificare fisier: ${error instanceof Error ? error.message : 'Eroare necunoscuta'}`);
+    return false;
   }
 };
 
@@ -679,23 +721,47 @@ const generateSingleArticle = async (state: GeminiState): Promise<{
     imageLogger(`🎨 Incepere proces cautare imagine pentru topic: "${label}"`);
 
     try {
-      const remoteUrl = await searchImageForTopic(label, imageLogger);
+      const candidateUrls = await searchImageForTopic(label, imageLogger);
 
-      if (remoteUrl) {
-        imageSourceUrl = remoteUrl;
-        imageLogger(`✅ URL imagine gasit, incercare download...`);
-
-        const downloaded = await downloadImageToUploads(remoteUrl, label, imageLogger);
-
-        if (downloaded) {
-          imageUrl = downloaded.imageUrl;
-          imageSourceUrl = downloaded.sourceUrl;
-          imageLogger(`🎉 Proces imagine finalizat cu succes!`);
-        } else {
-          imageLogger(`⚠️  Download imagine esuat (verificati logurile de mai sus pentru detalii)`);
-        }
+      if (candidateUrls.length === 0) {
+        imageLogger(`⚠️  Nu s-au gasit imagini candidate`);
       } else {
-        imageLogger(`⚠️  Nu s-a gasit niciun URL de imagine`);
+        // Incercam pana la 4 imagini candidate
+        const MAX_ATTEMPTS = Math.min(4, candidateUrls.length);
+        imageLogger(`🔄 Incercare download pentru ${MAX_ATTEMPTS} candidati...`);
+
+        for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+          const candidateUrl = candidateUrls[attempt];
+          imageLogger(`\n📌 Incercare ${attempt + 1}/${MAX_ATTEMPTS}: ${candidateUrl.substring(0, 60)}...`);
+
+          try {
+            const downloaded = await downloadImageToUploads(candidateUrl, label, imageLogger);
+
+            if (downloaded) {
+              // Verificam daca fisierul salvat este valid
+              const filePath = path.join(UPLOAD_DIR, downloaded.imageUrl.replace(PUBLIC_UPLOAD_URL_PREFIX + '/', ''));
+              const isValid = await verifyDownloadedImage(filePath, imageLogger);
+
+              if (isValid) {
+                imageUrl = downloaded.imageUrl;
+                imageSourceUrl = downloaded.sourceUrl;
+                imageLogger(`🎉 Imagine valida gasita la incercarea ${attempt + 1}!`);
+                break; // Succes - oprim cautarea
+              } else {
+                imageLogger(`⚠️  Imagine invalida, incercam urmatorul candidat...`);
+              }
+            } else {
+              imageLogger(`⚠️  Download esuat, incercam urmatorul candidat...`);
+            }
+          } catch (downloadError) {
+            imageLogger(`❌ Eroare la download candidat ${attempt + 1}: ${downloadError instanceof Error ? downloadError.message : 'Eroare'}`);
+            imageLogger(`⚠️  Incercam urmatorul candidat...`);
+          }
+        }
+
+        if (!imageUrl) {
+          imageLogger(`❌ Toate cele ${MAX_ATTEMPTS} incercari au esuat - articol fara imagine`);
+        }
       }
     } catch (error) {
       imageLogger(`💥 Eroare neasteptata la procesare imagine: ${error instanceof Error ? error.message : 'Eroare necunoscuta'}`);
