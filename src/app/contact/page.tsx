@@ -57,7 +57,7 @@ const ContactPage = () => (
                             <h3 className="mb-2 font-semibold text-slate-900">Website</h3>
                             <p className="text-sm text-slate-600">
                                 <a href="https://stire.site" className="text-blue-600 hover:underline">
-                                    www.stire.site
+                                    stire.site
                                 </a>
                             </p>
                         </div>

@@ -8,7 +8,7 @@ Aplicatie Next.js (App Router + Tailwind CSS) pentru redactia **stire.site**. Pa
 - Persistenta locala in `data/articles.json` (poate fi inlocuita ulterior cu o baza de date reala).
 - Regenerarea automata a tuturor sitemap-urilor:
   - `sitemap.xml` (index) contine: `sitemap-news.xml`, `sitemap-articles-latest.xml`, `sitemap-categories.xml`, `sitemap-images.xml`.
-  - Sitemap-urile de articole includ URL-urile in formatul cerut (`https://www.stire.site/Articol/economic/banca-mondiala...` in functie de `SITE_BASE_URL`).
+  - Sitemap-urile de articole includ URL-urile in formatul cerut (`https://stire.site/Articol/economic/banca-mondiala...` in functie de `SITE_BASE_URL`).
   - Sitemap-ul de categorii expune rutele `Categorie/<slug>`, iar cel de imagini listeaza doar articolele cu URL de imagine.
 - Integrare cu Google Indexing API prin `google-auth-library`. Daca lipseste credentialul din env, articolul ramane creat iar utilizatorul este informat ca trimiterea a fost sarita.
 
@@ -24,7 +24,7 @@ Aplicatia ruleaza pe [http://localhost:3000](http://localhost:3000).
 
 ### Variabile de mediu
 
-- `SITE_BASE_URL` – domeniul public pentru URL-uri si sitemap-uri (ex: `https://www.stiri.site`).
+- `SITE_BASE_URL` – domeniul public pentru URL-uri si sitemap-uri (ex: `https://stire.site`).
 - `GOOGLE_APPLICATION_CREDENTIALS_JSON` - continutul JSON al service account-ului cu access la Indexing API (escape la `\n`). Daca preferi, poti incarca acelasi JSON direct din dashboard (tab-ul **SMGoogle → JSON**), iar aplicatia il va salva in `data/smgoogle-account.json` si va folosi acea versiune chiar daca exista o variabila in `.env`.
 - `GEMINI_API_KEY` este stocat encrypted in `data/gemini.json` prin dashboard (nu in env).
 
@@ -45,8 +45,8 @@ Pentru resetarea datelor locale, sterge continutul `data/articles.json` si fisie
 ## Deploy pe VPS
 
 1. **Primul setup pe server** - cloneaza repo-ul pe VPS si ruleaza `bash setup.sh` cu utilizatorul care va rula aplicatia. Scriptul instaleaza Node.js 20.x, dependintele npm, configureaza un proces PM2 numit `stire-site` (ruleaza `npm run start -- --hostname 127.0.0.1 --port 3000`) si pregateste template-ul nginx din `ops/nginx/stire.site.conf`, astfel incat domeniul sa raspunda pe porturile 80/443 fara suffix `:3000`.
-2. **Completeaza `.env.production`** pe server cu valorile reale pentru `SITE_BASE_URL` (ex: `https://www.stire.site`) si `GOOGLE_APPLICATION_CREDENTIALS_JSON`. JSON-ul service-account trebuie sa fie o singura linie cu `\n` escape pentru cheie, deoarece fisierul este folosit atat de Next.js cat si de systemd.
-3. **Configureaza HTTPS** optional dupa setup: `sudo certbot --nginx -d domeniu -d www.domeniu` si decomenteaza blocul TLS din config daca vrei un fisier separat.
+2. **Completeaza `.env.production`** pe server cu valorile reale pentru `SITE_BASE_URL` (ex: `https://stire.site`) si `GOOGLE_APPLICATION_CREDENTIALS_JSON`. JSON-ul service-account trebuie sa fie o singura linie cu `\n` escape pentru cheie, deoarece fisierul este folosit atat de Next.js cat si de systemd.
+3. **Configureaza HTTPS** optional dupa setup: `sudo certbot --nginx -d domeniu -d www.domeniu` (certbot va obtine certificat pentru ambele, dar nginx va redirecta www catre non-www) si decomenteaza blocul TLS din config daca vrei un fisier separat.
 4. **Activeaza deploy automat** - dupa ce serverul este pregatit, configureaza secretele/variabilele GitHub (Settings -> Secrets and variables -> Actions):
    - `SSH_HOST` - IP/hostname al VPS-ului.
    - `SSH_USER` - utilizatorul cu acces SSH si permisiuni `sudo systemctl`.

@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   description:
     'stire.site agregă și generează știri în limba română, pe categorii și subiecte actuale, cu sitemap-uri și indexare optimizate pentru Google.',
   alternates: {
-    canonical: 'https://www.stire.site/',
+    canonical: 'https://stire.site/',
   },
 };
 

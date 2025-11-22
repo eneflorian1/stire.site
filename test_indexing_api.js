@@ -1,5 +1,5 @@
 // Script simplu pentru a trimite manual un URL la Google Indexing API.
-// Rulare: node test_indexing_api.js https://www.stire.site/cale/catre/articol
+// Rulare: node test_indexing_api.js https://stire.site/cale/catre/articol
 //
 // Folosește direct fișierul de service account @ai-news-412315-eb00799918a1.json
 // pe care l-ai pus în rădăcina proiectului.
@@ -66,7 +66,7 @@ async function submitUrl(url) {
 async function main() {
   const url = process.argv[2];
   if (!url) {
-    console.error('Usage: node test_indexing_api.js https://www.exemplu.ro/cale/catre/pagina');
+    console.error('Usage: node test_indexing_api.js https://exemplu.ro/cale/catre/pagina');
     process.exit(1);
   }
 

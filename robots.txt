@@ -1,4 +1,4 @@
 User-agent: *
 Disallow:
 
-Sitemap: https://www.stire.site/sitemap.xml
+Sitemap: https://stire.site/sitemap.xml
