@@ -220,47 +220,129 @@ const guessImageExtension = (url: string, contentType?: string | null) => {
   return '.jpg';
 };
 
-const searchImageForTopic = async (query: string): Promise<string | null> => {
-  const q = encodeURIComponent(query.trim());
-  const url = `https://www.google.com/search?q=${q}&tbm=isch&hl=ro&gl=RO`;
+// Verifica daca exista stiri recente (max 3 zile) pentru un topic
+const searchRecentNewsForTopic = async (query: string): Promise<boolean> => {
+  try {
+    const q = encodeURIComponent(query.trim());
+    // Folosim Google News RSS feed pentru Romania
+    const url = `https://news.google.com/rss/search?q=${q}&hl=ro&gl=RO&ceid=RO:ro`;
 
-  const response = await fetch(url, {
-    headers: {
-      'User-Agent':
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-      Accept:
-        'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-      'Accept-Language': 'ro-RO,ro;q=0.9,en-US;q=0.8,en;q=0.7',
-    },
-  });
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+      },
+    });
 
-  if (!response.ok) {
+    if (!response.ok) {
+      return false;
+    }
+
+    const xml = await response.text();
+
+    // Parseaza XML-ul pentru a gasi datele articolelor
+    const pubDateRegex = /<pubDate>(.*?)<\/pubDate>/gi;
+    const dates: Date[] = [];
+    let match: RegExpExecArray | null;
+
+    // eslint-disable-next-line no-cond-assign
+    while ((match = pubDateRegex.exec(xml)) !== null) {
+      try {
+        const dateStr = match[1];
+        const date = new Date(dateStr);
+        if (!isNaN(date.getTime())) {
+          dates.push(date);
+        }
+      } catch {
+        // Ignora datele invalide
+      }
+    }
+
+    if (dates.length === 0) {
+      return false;
+    }
+
+    // Verifica daca exista cel putin un articol din ultimele 3 zile
+    const now = Date.now();
+    const THREE_DAYS = 3 * 24 * 60 * 60 * 1000;
+
+    return dates.some((date) => {
+      const articleAge = now - date.getTime();
+      return articleAge <= THREE_DAYS && articleAge >= 0;
+    });
+  } catch {
+    return false;
+  }
+};
+
+const searchImageForTopic = async (
+  query: string,
+  logger?: (msg: string) => void
+): Promise<string | null> => {
+  const log = logger ?? (() => { });
+
+  try {
+    const q = encodeURIComponent(query.trim());
+    const url = `https://www.google.com/search?q=${q}&tbm=isch&hl=ro&gl=RO`;
+
+    log(`🔍 Cautare imagine pentru: "${query}"`);
+
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        Accept:
+          'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'ro-RO,ro;q=0.9,en-US;q=0.8,en;q=0.7',
+      },
+    });
+
+    if (!response.ok) {
+      log(`❌ Eroare HTTP la cautare imagine: ${response.status}`);
+      return null;
+    }
+
+    const html = await response.text();
+    log(`📄 HTML primit: ${html.length} caractere`);
+
+    const regex = /https:\/\/[^\s"'<>]+?\.(?:jpg|jpeg|png|webp|gif)(?:\?[^\s"'<>]*)?/gi;
+    const candidates: string[] = [];
+    let match: RegExpExecArray | null;
+    // eslint-disable-next-line no-cond-assign
+    while ((match = regex.exec(html)) !== null) {
+      const candidate = match[0];
+      if (!candidate.toLowerCase().includes('gstatic')) {
+        candidates.push(candidate);
+      }
+      if (candidates.length >= 5) break;
+    }
+
+    log(`🖼️  Imagini candidate gasite: ${candidates.length}`);
+    if (candidates.length > 0) {
+      log(`✅ Prima imagine: ${candidates[0].substring(0, 80)}...`);
+    } else {
+      log(`⚠️  Nu s-au gasit imagini candidate`);
+    }
+
+    return candidates[0] ?? null;
+  } catch (error) {
+    log(`💥 Eroare la cautare imagine: ${error instanceof Error ? error.message : 'Eroare necunoscuta'}`);
     return null;
   }
-
-  const html = await response.text();
-
-  const regex = /https:\/\/[^\s"'<>]+?\.(?:jpg|jpeg|png|webp|gif)(?:\?[^\s"'<>]*)?/gi;
-  const candidates: string[] = [];
-  let match: RegExpExecArray | null;
-  // eslint-disable-next-line no-cond-assign
-  while ((match = regex.exec(html)) !== null) {
-    const candidate = match[0];
-    if (!candidate.toLowerCase().includes('gstatic')) {
-      candidates.push(candidate);
-    }
-    if (candidates.length >= 5) break;
-  }
-
-  return candidates[0] ?? null;
 };
 
 const downloadImageToUploads = async (
   remoteUrl: string,
-  nameHint: string
+  nameHint: string,
+  logger?: (msg: string) => void
 ): Promise<{ imageUrl: string; sourceUrl: string } | null> => {
+  const log = logger ?? (() => { });
+
   try {
+    log(`📥 Incercare download imagine: ${remoteUrl.substring(0, 80)}...`);
+
     await ensureUploadsDir();
+
     const response = await fetch(remoteUrl, {
       headers: {
         'User-Agent':
@@ -271,12 +353,25 @@ const downloadImageToUploads = async (
     });
 
     if (!response.ok) {
+      log(`❌ Eroare HTTP la download imagine: ${response.status} ${response.statusText}`);
       return null;
     }
 
+    log(`✅ Raspuns HTTP: ${response.status}`);
+
     const arrayBuffer = await response.arrayBuffer();
     const bytes = Buffer.from(arrayBuffer);
-    if (!bytes.length || bytes.length > 10 * 1024 * 1024) {
+    const sizeKB = Math.round(bytes.length / 1024);
+
+    log(`📦 Dimensiune fisier: ${sizeKB} KB`);
+
+    if (!bytes.length) {
+      log(`❌ Fisier gol (0 bytes)`);
+      return null;
+    }
+
+    if (bytes.length > 10 * 1024 * 1024) {
+      log(`❌ Fisier prea mare: ${sizeKB} KB (max 10 MB)`);
       return null;
     }
 
@@ -285,12 +380,17 @@ const downloadImageToUploads = async (
       const dimensions = imageSize(bytes);
       const width = dimensions.width ?? 0;
       const height = dimensions.height ?? 0;
+
+      log(`📐 Rezolutie imagine: ${width}x${height}px`);
+
       if (width < MIN_IMAGE_WIDTH || height < MIN_IMAGE_HEIGHT) {
-        // Imagine prea mica pentru a fi folosita ca imagine de articol
+        log(`❌ Rezolutie prea mica: ${width}x${height}px (minim: ${MIN_IMAGE_WIDTH}x${MIN_IMAGE_HEIGHT}px)`);
         return null;
       }
-    } catch {
-      // Daca nu putem determina dimensiunile, mai bine renuntam la imagine
+
+      log(`✅ Rezolutie acceptabila`);
+    } catch (error) {
+      log(`❌ Nu s-a putut determina rezolutia imaginii: ${error instanceof Error ? error.message : 'Eroare necunoscuta'}`);
       return null;
     }
 
@@ -300,13 +400,20 @@ const downloadImageToUploads = async (
     const timestamp = new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14);
     const filename = `${slug || 'imagine'}-${timestamp}${ext}`;
     const filePath = path.join(UPLOAD_DIR, filename);
+
+    log(`💾 Salvare imagine: ${filename}`);
+
     await fs.writeFile(filePath, bytes);
 
+    const publicUrl = `${PUBLIC_UPLOAD_URL_PREFIX}/${filename}`;
+    log(`✅ Imagine salvata cu succes: ${publicUrl}`);
+
     return {
-      imageUrl: `${PUBLIC_UPLOAD_URL_PREFIX}/${filename}`,
+      imageUrl: publicUrl,
       sourceUrl: remoteUrl,
     };
-  } catch {
+  } catch (error) {
+    log(`💥 Eroare la download/salvare imagine: ${error instanceof Error ? error.message : 'Eroare necunoscuta'}`);
     return null;
   }
 };
@@ -438,6 +545,17 @@ const generateSingleArticle = async (state: GeminiState): Promise<{
   const label = selectedTopic.label;
   const labelLower = label.toLowerCase();
 
+  // Verifica daca exista stiri recente (max 3 zile) pentru acest topic
+  const hasRecentNews = await searchRecentNewsForTopic(label);
+  if (!hasRecentNews) {
+    const log = createArticleLog({
+      topicLabel: label,
+      status: 'skipped',
+      message: 'Nu exista stiri recente (max 3 zile) pentru acest topic.',
+    });
+    return { created: false, topicLabel: label, articleLog: log };
+  }
+
   // Verifica duplicate in articolele din ultimele 24h
   const existingArticles = await getArticles();
   const recentArticles = existingArticles.filter((article) => {
@@ -491,21 +609,42 @@ const generateSingleArticle = async (state: GeminiState): Promise<{
       categoryNames[0] ||
       'General';
 
+    // Loguri detaliate pentru procesul de imagine
+    const imageLogs: string[] = [];
+    const imageLogger = (msg: string) => {
+      imageLogs.push(msg);
+      console.log(`[IMAGE] ${msg}`);
+    };
+
     let imageUrl: string | undefined;
     let imageSourceUrl: string | undefined;
+
+    imageLogger(`🎨 Incepere proces cautare imagine pentru topic: "${label}"`);
+
     try {
-      const remoteUrl = await searchImageForTopic(label);
+      const remoteUrl = await searchImageForTopic(label, imageLogger);
+
       if (remoteUrl) {
         imageSourceUrl = remoteUrl;
-        const downloaded = await downloadImageToUploads(remoteUrl, label);
+        imageLogger(`✅ URL imagine gasit, incercare download...`);
+
+        const downloaded = await downloadImageToUploads(remoteUrl, label, imageLogger);
+
         if (downloaded) {
           imageUrl = downloaded.imageUrl;
           imageSourceUrl = downloaded.sourceUrl;
+          imageLogger(`🎉 Proces imagine finalizat cu succes!`);
+        } else {
+          imageLogger(`⚠️  Download imagine esuat (verificati logurile de mai sus pentru detalii)`);
         }
+      } else {
+        imageLogger(`⚠️  Nu s-a gasit niciun URL de imagine`);
       }
-    } catch {
-      // Continua fara imagine
+    } catch (error) {
+      imageLogger(`💥 Eroare neasteptata la procesare imagine: ${error instanceof Error ? error.message : 'Eroare necunoscuta'}`);
     }
+
+    const imageLogSummary = imageLogs.join('\n');
 
     const article = await createArticle(
       {
@@ -525,6 +664,9 @@ const generateSingleArticle = async (state: GeminiState): Promise<{
       articleId: article.id,
       status: 'success',
       message: 'Articol generat si salvat cu succes.',
+      details: imageUrl
+        ? `Imagine salvata: ${imageUrl}\n\n--- Loguri imagine ---\n${imageLogSummary}`
+        : `Articol fara imagine.\n\n--- Loguri imagine ---\n${imageLogSummary}`,
     });
 
     try {
