@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto';
 import { promises as fs } from 'fs';
 import path from 'path';
 import imageSize from 'image-size';
+import sharp from 'sharp';
 import { readJsonFile, writeJsonFile } from './json-store';
 import { getTopics } from './topics';
 import { getCategories } from './categories';
@@ -68,6 +69,12 @@ const PUBLIC_UPLOAD_URL_PREFIX = '/uploads';
 // (evitam logo-uri foarte mici de tip 200x50 etc.)
 const MIN_IMAGE_WIDTH = 600;
 const MIN_IMAGE_HEIGHT = 315;
+
+// Configurare conversie imagini
+// Toate imaginile vor fi convertite in acest format pentru compatibilitate maxima
+const OUTPUT_IMAGE_FORMAT = 'webp'; // webp (modern, eficient) sau jpeg (compatibilitate maxima)
+const OUTPUT_IMAGE_QUALITY = 85; // 1-100, recomandat 80-90 pentru webp, 85-95 pentru jpeg
+const OUTPUT_IMAGE_EXTENSION = '.webp'; // extensia finala a fisierului
 
 const defaultState: GeminiState = {
   apiKey: null,
@@ -394,24 +401,74 @@ const downloadImageToUploads = async (
       return null;
     }
 
+    // Detectam formatul original
     const contentType = response.headers.get('content-type');
-    const ext = guessImageExtension(remoteUrl, contentType);
+    const originalFormat = contentType?.split('/')[1] || guessImageExtension(remoteUrl, contentType).replace('.', '');
+    log(`🎨 Format original: ${originalFormat}`);
+
+    // Convertim imaginea in formatul dorit (WebP sau JPEG)
     const slug = slugify(nameHint || 'imagine');
     const timestamp = new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14);
-    const filename = `${slug || 'imagine'}-${timestamp}${ext}`;
+    const filename = `${slug || 'imagine'}-${timestamp}${OUTPUT_IMAGE_EXTENSION}`;
     const filePath = path.join(UPLOAD_DIR, filename);
 
-    log(`💾 Salvare imagine: ${filename}`);
+    log(`🔄 Conversie imagine in format ${OUTPUT_IMAGE_FORMAT.toUpperCase()}...`);
 
-    await fs.writeFile(filePath, bytes);
+    try {
+      // Folosim Sharp pentru conversie si optimizare
+      const sharpInstance = sharp(bytes);
 
-    const publicUrl = `${PUBLIC_UPLOAD_URL_PREFIX}/${filename}`;
-    log(`✅ Imagine salvata cu succes: ${publicUrl}`);
+      // Convertim in formatul dorit
+      let convertedBuffer: Buffer;
+      if (OUTPUT_IMAGE_FORMAT === 'webp') {
+        convertedBuffer = await sharpInstance
+          .webp({ quality: OUTPUT_IMAGE_QUALITY })
+          .toBuffer();
+      } else if (OUTPUT_IMAGE_FORMAT === 'jpeg' || OUTPUT_IMAGE_FORMAT === 'jpg') {
+        convertedBuffer = await sharpInstance
+          .jpeg({ quality: OUTPUT_IMAGE_QUALITY, mozjpeg: true })
+          .toBuffer();
+      } else {
+        // Fallback la PNG daca formatul nu e suportat
+        convertedBuffer = await sharpInstance
+          .png({ quality: OUTPUT_IMAGE_QUALITY })
+          .toBuffer();
+      }
 
-    return {
-      imageUrl: publicUrl,
-      sourceUrl: remoteUrl,
-    };
+      const convertedSizeKB = Math.round(convertedBuffer.length / 1024);
+      const compressionRatio = Math.round((1 - convertedBuffer.length / bytes.length) * 100);
+
+      log(`✅ Conversie reusita: ${sizeKB} KB → ${convertedSizeKB} KB (compresie ${compressionRatio}%)`);
+      log(`💾 Salvare imagine: ${filename}`);
+
+      await fs.writeFile(filePath, convertedBuffer);
+
+      const publicUrl = `${PUBLIC_UPLOAD_URL_PREFIX}/${filename}`;
+      log(`✅ Imagine salvata cu succes: ${publicUrl}`);
+
+      return {
+        imageUrl: publicUrl,
+        sourceUrl: remoteUrl,
+      };
+    } catch (conversionError) {
+      log(`❌ Eroare la conversie imagine: ${conversionError instanceof Error ? conversionError.message : 'Eroare necunoscuta'}`);
+      log(`⚠️  Incercare salvare fara conversie...`);
+
+      // Fallback: salvam imaginea originala daca conversia esueaza
+      const fallbackExt = guessImageExtension(remoteUrl, contentType);
+      const fallbackFilename = `${slug || 'imagine'}-${timestamp}${fallbackExt}`;
+      const fallbackPath = path.join(UPLOAD_DIR, fallbackFilename);
+
+      await fs.writeFile(fallbackPath, bytes);
+
+      const publicUrl = `${PUBLIC_UPLOAD_URL_PREFIX}/${fallbackFilename}`;
+      log(`✅ Imagine salvata (format original): ${publicUrl}`);
+
+      return {
+        imageUrl: publicUrl,
+        sourceUrl: remoteUrl,
+      };
+    }
   } catch (error) {
     log(`💥 Eroare la download/salvare imagine: ${error instanceof Error ? error.message : 'Eroare necunoscuta'}`);
     return null;
