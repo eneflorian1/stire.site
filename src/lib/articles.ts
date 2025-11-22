@@ -318,6 +318,15 @@ export const deleteArticlesByIds = async (ids: string[]) => {
   return { deleted, articles: remaining };
 };
 
+// Normalizează toate articolele existente și regenerează sitemap-urile
+export const normalizeAllArticlesAndRebuildSitemaps = async () => {
+  const articles = await readArticlesFromDisk();
+  // Articolele sunt deja normalizate la citire, dar rescrierea garantează JSON curat
+  await writeArticlesToDisk(articles);
+  await rebuildSitemaps(articles);
+  return { normalized: articles.length };
+};
+
 export const getArticleBySlugs = async (categorySlug: string, slug: string) => {
   const articles = await readArticlesFromDisk();
   const normalizedCategory = (categorySlug ?? '').toLowerCase();
