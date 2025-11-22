@@ -47,6 +47,13 @@ const SITEMAP_FILES = {
 const RAW_BASE_URL = process.env.SITE_BASE_URL ?? 'https://stire.site';
 const BASE_URL = RAW_BASE_URL.endsWith('/') ? RAW_BASE_URL.slice(0, -1) : RAW_BASE_URL;
 
+// Normalizează URL-ul pentru a elimina www
+const normalizeUrl = (url: string): string => {
+  if (!url) return url;
+  // Elimină www. din URL-uri (doar dacă este exact după protocol)
+  return url.replace(/^https?:\/\/www\./, (match) => match.replace('www.', ''));
+};
+
 const ensureDataFile = async () => {
   try {
     await fs.access(DATA_PATH);
@@ -66,6 +73,10 @@ const normalizeExistingArticle = (article: Partial<Article>): Article | null => 
   const slug = (article.slug ?? slugify(article.title)) || slugify('articol');
   const now = new Date().toISOString();
 
+  const articleUrl = article.url 
+    ? normalizeUrl(article.url) 
+    : buildArticleUrl(categorySlug, slug);
+
   return {
     id: article.id ?? randomUUID(),
     title: article.title.trim(),
@@ -80,7 +91,7 @@ const normalizeExistingArticle = (article: Partial<Article>): Article | null => 
     publishedAt: article.publishedAt ?? now,
     createdAt: article.createdAt ?? now,
     updatedAt: article.updatedAt ?? now,
-    url: article.url ?? buildArticleUrl(categorySlug, slug),
+    url: articleUrl,
     hashtags: article.hashtags?.trim() || undefined,
   };
 };
@@ -103,7 +114,12 @@ const readArticlesFromDisk = async (): Promise<Article[]> => {
 };
 
 const writeArticlesToDisk = async (articles: Article[]) => {
-  await fs.writeFile(DATA_PATH, JSON.stringify(articles, null, 2), 'utf8');
+  // Normalizează URL-urile înainte de salvare
+  const normalizedArticles = articles.map((article) => ({
+    ...article,
+    url: normalizeUrl(article.url),
+  }));
+  await fs.writeFile(DATA_PATH, JSON.stringify(normalizedArticles, null, 2), 'utf8');
 };
 
 const buildArticleUrl = (categorySlug: string, articleSlug: string) =>
@@ -200,7 +216,7 @@ const rebuildSitemaps = async (articles: Article[]) => {
         return '';
       }
       return `  <url>
-    <loc>${encodeXml(article.url)}</loc>
+    <loc>${encodeXml(normalizeUrl(article.url))}</loc>
     <news:news>
       <news:publication>
         <news:name>stire.site</news:name>
@@ -223,7 +239,7 @@ ${newsItems}
   await writeXml(SITEMAP_FILES.news, newsSitemapXml);
 
   const allEntries = published.map((article) => ({
-    loc: article.url,
+    loc: normalizeUrl(article.url),
     lastmod: article.updatedAt ?? article.publishedAt,
     priority: '0.8',
   }));
@@ -266,7 +282,7 @@ ${newsItems}
             : `${BASE_URL}${rawImageUrl.startsWith('/') ? rawImageUrl : `/${rawImageUrl}`}`;
 
         return `  <url>
-    <loc>${encodeXml(article.url)}</loc>
+    <loc>${encodeXml(normalizeUrl(article.url))}</loc>
     <image:image>
       <image:loc>${encodeXml(absoluteImageUrl)}</image:loc>
       <image:title>${encodeXml(article.title)}</image:title>
