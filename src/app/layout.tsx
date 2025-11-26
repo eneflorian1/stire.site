@@ -13,9 +13,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'stire.site Admin',
+  metadataBase: new URL('https://stire.site'),
+  title: {
+    default: 'stire.site',
+    template: '%s | stire.site',
+  },
   description:
-    'Dashboard Swift-style pentru redactia stire.site: articole, categorii, topicuri si indexare Google.',
+    'stire.site agregă și generează știri în limba română, pe categorii și subiecte actuale, cu sitemap-uri și indexare optimizate pentru Google.',
 };
 
 export default function RootLayout({

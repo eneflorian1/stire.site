@@ -10,7 +10,9 @@ import { getCategories } from '@/lib/categories';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'stire.site – Știri curate, generate și curate automat',
+  title: {
+    absolute: 'stire.site – Știri curate, generate și curate automat',
+  },
   description:
     'stire.site agregă și generează știri în limba română, pe categorii și subiecte actuale, cu sitemap-uri și indexare optimizate pentru Google.',
   alternates: {
