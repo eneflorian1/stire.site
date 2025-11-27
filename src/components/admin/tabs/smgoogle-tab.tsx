@@ -220,6 +220,7 @@ const SMGoogleTab = () => {
                   <button type="submit" className={buttonPrimary} disabled={isSubmitting}>
                     {isSubmitting ? 'Trimitem...' : 'Submit manual'}
                   </button>
+                  <PingSitemapsButton />
                 </div>
               </form>
 
@@ -377,6 +378,43 @@ const SMGoogleTab = () => {
           </div>
         </div>
       </div>
+    </div>
+  );
+};
+
+
+
+const PingSitemapsButton = () => {
+  const [isPinging, setIsPinging] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const handlePing = async () => {
+    setIsPinging(true);
+    setMessage(null);
+    try {
+      const response = await fetch('/api/smgoogle/ping');
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Eroare la ping.');
+      setMessage('Sitemaps pinged successfully!');
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Eroare la ping.');
+    } finally {
+      setIsPinging(false);
+      setTimeout(() => setMessage(null), 3000);
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-start">
+      <button
+        type="button"
+        onClick={handlePing}
+        disabled={isPinging}
+        className="rounded-xl bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+      >
+        {isPinging ? 'Pinging...' : 'Ping Sitemaps'}
+      </button>
+      {message && <span className="mt-1 text-xs text-emerald-600">{message}</span>}
     </div>
   );
 };

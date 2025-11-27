@@ -45,7 +45,7 @@ const SITEMAP_FILES = {
   images: path.join(PUBLIC_DIR, 'sitemap-images.xml'),
 };
 const RAW_BASE_URL = process.env.SITE_BASE_URL ?? 'https://stire.site';
-const BASE_URL = RAW_BASE_URL.endsWith('/') ? RAW_BASE_URL.slice(0, -1) : RAW_BASE_URL;
+const BASE_URL = (RAW_BASE_URL.endsWith('/') ? RAW_BASE_URL.slice(0, -1) : RAW_BASE_URL).replace('://www.', '://');
 
 // Normalizează URL-ul pentru a elimina www
 const normalizeUrl = (url: string): string => {
@@ -73,8 +73,8 @@ const normalizeExistingArticle = (article: Partial<Article>): Article | null => 
   const slug = (article.slug ?? slugify(article.title)) || slugify('articol');
   const now = new Date().toISOString();
 
-  const articleUrl = article.url 
-    ? normalizeUrl(article.url) 
+  const articleUrl = article.url
+    ? normalizeUrl(article.url)
     : buildArticleUrl(categorySlug, slug);
 
   return {
