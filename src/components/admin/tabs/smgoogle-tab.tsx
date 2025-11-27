@@ -220,7 +220,7 @@ const SMGoogleTab = () => {
                   <button type="submit" className={buttonPrimary} disabled={isSubmitting}>
                     {isSubmitting ? 'Trimitem...' : 'Submit manual'}
                   </button>
-                  <PingSitemapsButton />
+                  <PingSitemapsButton onPingComplete={fetchSmData} />
                 </div>
               </form>
 
@@ -384,7 +384,7 @@ const SMGoogleTab = () => {
 
 
 
-const PingSitemapsButton = () => {
+const PingSitemapsButton = ({ onPingComplete }: { onPingComplete?: () => void }) => {
   const [isPinging, setIsPinging] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -395,12 +395,13 @@ const PingSitemapsButton = () => {
       const response = await fetch('/api/smgoogle/ping');
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || 'Eroare la ping.');
-      setMessage('Sitemaps pinged successfully!');
+      setMessage(data.message || 'Sitemaps pinged successfully!');
+      onPingComplete?.();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Eroare la ping.');
     } finally {
       setIsPinging(false);
-      setTimeout(() => setMessage(null), 3000);
+      setTimeout(() => setMessage(null), 5000);
     }
   };
 
@@ -412,7 +413,7 @@ const PingSitemapsButton = () => {
         disabled={isPinging}
         className="rounded-xl bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-50"
       >
-        {isPinging ? 'Pinging...' : 'Ping Sitemaps'}
+        {isPinging ? 'Se trimit...' : 'Ping Sitemaps'}
       </button>
       {message && <span className="mt-1 text-xs text-emerald-600">{message}</span>}
     </div>

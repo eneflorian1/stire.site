@@ -51,7 +51,12 @@ const BASE_URL = (RAW_BASE_URL.endsWith('/') ? RAW_BASE_URL.slice(0, -1) : RAW_B
 const normalizeUrl = (url: string): string => {
   if (!url) return url;
   // Elimină www. din URL-uri (doar dacă este exact după protocol)
-  return url.replace(/^https?:\/\/www\./, (match) => match.replace('www.', ''));
+  let normalized = url.replace(/^https?:\/\/www\./, (match) => match.replace('www.', ''));
+  // Force HTTPS
+  if (normalized.startsWith('http://')) {
+    normalized = normalized.replace('http://', 'https://');
+  }
+  return normalized;
 };
 
 const ensureDataFile = async () => {

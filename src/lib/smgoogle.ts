@@ -92,8 +92,8 @@ export const logSMGoogleSubmission = async (
   const status: SMGoogleLog['status'] = submission.success
     ? 'success'
     : submission.skipped
-    ? 'skipped'
-    : 'error';
+      ? 'skipped'
+      : 'error';
 
   const log: SMGoogleLog = {
     id: randomUUID(),
@@ -113,4 +113,39 @@ export const submitManualSMGoogle = async (url: string) => {
   const submission = await submitUrlToGoogle(url);
   const log = await logSMGoogleSubmission(url, submission, 'manual');
   return { submission, log };
+};
+
+export const submitBatchSMGoogle = async (urls: string[]) => {
+  // Submit all URLs in parallel
+  const results = await Promise.all(
+    urls.map(async (url) => {
+      const submission = await submitUrlToGoogle(url);
+      return { url, submission };
+    })
+  );
+
+  // Prepare logs
+  const logs = await getSMGoogleLogs();
+  const newLogs: SMGoogleLog[] = results.map(({ url, submission }) => {
+    const status: SMGoogleLog['status'] = submission.success
+      ? 'success'
+      : submission.skipped
+        ? 'skipped'
+        : 'error';
+
+    return {
+      id: randomUUID(),
+      url,
+      status,
+      detail: describeSubmission(submission, status),
+      submission,
+      createdAt: new Date().toISOString(),
+      source: 'manual',
+    };
+  });
+
+  // Save all logs at once
+  await saveLogs([...newLogs, ...logs]);
+
+  return results;
 };
