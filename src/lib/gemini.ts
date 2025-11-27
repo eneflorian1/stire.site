@@ -792,12 +792,8 @@ const generateSingleArticle = async (state: GeminiState): Promise<{
         : `Articol fara imagine.\n\n--- Loguri imagine ---\n${imageLogSummary}`,
     });
 
-    try {
-      const submission = await submitUrlToGoogle(article.url);
-      await logSMGoogleSubmission(article.url, submission, 'auto');
-    } catch {
-      // Ignoram erorile de logging
-    }
+    // Indexarea automata este acum gestionata direct in createArticle (src/lib/articles.ts)
+    // pentru a acoperi toate cazurile (AI si manual).
 
     // Actualizeaza timestamp-ul pentru acest topic
     state.topicLastPosted[label] = new Date().toISOString();

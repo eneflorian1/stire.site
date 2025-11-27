@@ -394,5 +394,23 @@ export const createArticle = async (
   await writeArticlesToDisk(updatedArticles);
   await ensureCategoryRecord(category);
   await rebuildSitemaps(updatedArticles);
+
+  // Autosubmit to Google Indexing API (mimic WordPress behavior)
+  if (article.status === 'published') {
+    try {
+      // Import dynamically to avoid potential circular dependency issues if any arise, 
+      // though static import should be fine given current structure. 
+      // Using static import as requested in instruction.
+      const { submitUrlToGoogle } = await import('./google-indexing');
+      const { logSMGoogleSubmission } = await import('./smgoogle');
+
+      const submission = await submitUrlToGoogle(article.url);
+      await logSMGoogleSubmission(article.url, submission, 'auto');
+      console.log(`[AutoSubmit] Submitted ${article.url} to Google: ${submission.success ? 'Success' : 'Failed'}`);
+    } catch (error) {
+      console.error('[AutoSubmit] Failed to submit article to Google:', error);
+    }
+  }
+
   return article;
 };
