@@ -176,28 +176,26 @@ async function analyzeForTimeline(keyword: string, articles: ExternalArticle[], 
         const aiService = createAIService(config);
 
         const articlesText = articles.map(a => `- ${a.title}: ${a.snippet} (${a.source})`).join('\n');
-        const historyText = history.slice(0, 3).map(h => `- ${h.date}: ${h.summary}`).join('\n');
 
-        const prompt = `Analyze these new articles about "${keyword}" in the context of previous events.
-    
-    New Articles:
-    ${articlesText}
-    
-    Previous Context:
-    ${historyText}
-    
-    Return ONLY a JSON object with this structure:
-    {
-      "summary": "Concise summary of the new developments (max 2 sentences) in Romanian.",
-      "credibilityScore": <number 0-100 based on source reliability>,
-      "prediction": "Short prediction of what might happen next based on this news (in Romanian).",
-      "sentiment": "<positive|neutral|negative>",
-      "trends": {
-        "past": "<scadere|stabil|crestere>",
-        "present": "<scadere|strangere|sus|activ|stabil>",
-        "future": "<scadere|stabil|crestere|incert>"
-      }
-    }`;
+        const prompt = `Analyze these new articles about the keyword: "${keyword}".
+
+IMPORTANT: Only analyze articles that are actually about "${keyword}". If an article is NOT related to "${keyword}", mark it as irrelevant and give it a credibility score of 0.
+
+New Articles:
+${articlesText}
+
+Return ONLY a JSON object with this structure:
+{
+  "summary": "Concise summary of what these articles say about '${keyword}' (max 2 sentences) in Romanian. If articles are not relevant to '${keyword}', state that clearly.",
+  "credibilityScore": <number 0-100 based on source reliability and relevance to '${keyword}'. Use 0 if articles are not about '${keyword}'>,
+  "prediction": "Short prediction about '${keyword}' based on this news (in Romanian). If not relevant, state 'Fără noi informații relevante despre ${keyword}.'",
+  "sentiment": "<positive|neutral|negative>",
+  "trends": {
+    "past": "<scadere|stabil|crestere>",
+    "present": "<scadere|strangere|sus|activ|stabil>",
+    "future": "<scadere|stabil|crestere|incert>"
+  }
+}`;
 
         const responseText = await aiService.generateContent(prompt);
         const jsonMatch = responseText.match(/\{[\s\S]*\}/);

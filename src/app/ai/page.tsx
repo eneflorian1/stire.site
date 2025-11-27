@@ -24,7 +24,7 @@ const AIPage = () => {
     const [searchKeyword, setSearchKeyword] = useState('');
     const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [viewMode, setViewMode] = useState<ViewMode>('articles');
+    const [viewMode, setViewMode] = useState<ViewMode>('tracking');
     const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
     const [analyzingArticle, setAnalyzingArticle] = useState<string | null>(null);
     const [articleAnalysis, setArticleAnalysis] = useState<Record<string, any>>({});
@@ -129,11 +129,11 @@ const AIPage = () => {
 
 
                 {/* View Mode Tabs */}
-                <div className="mb-8 flex gap-2">
+                <div className="mb-8 flex flex-wrap gap-2">
                     <button
                         type="button"
                         onClick={() => setViewMode('tracking')}
-                        className={`rounded-lg px-4 py-2 text-sm font-medium transition ${viewMode === 'tracking'
+                        className={`rounded-md px-2.5 py-1.5 text-xs font-medium transition ${viewMode === 'tracking'
                             ? 'bg-violet-600 text-white shadow-md'
                             : 'bg-white text-slate-700 hover:bg-slate-50'
                             }`}
@@ -143,7 +143,7 @@ const AIPage = () => {
                     <button
                         type="button"
                         onClick={() => setViewMode('articles')}
-                        className={`rounded-lg px-4 py-2 text-sm font-medium transition ${viewMode === 'articles'
+                        className={`rounded-md px-2.5 py-1.5 text-xs font-medium transition ${viewMode === 'articles'
                             ? 'bg-violet-600 text-white shadow-md'
                             : 'bg-white text-slate-700 hover:bg-slate-50'
                             }`}
@@ -154,7 +154,7 @@ const AIPage = () => {
                         type="button"
                         onClick={() => setViewMode('analysis')}
                         disabled={!selectedArticle}
-                        className={`rounded-lg px-4 py-2 text-sm font-medium transition disabled:opacity-50 ${viewMode === 'analysis'
+                        className={`rounded-md px-2.5 py-1.5 text-xs font-medium transition disabled:opacity-50 ${viewMode === 'analysis'
                             ? 'bg-violet-600 text-white shadow-md'
                             : 'bg-white text-slate-700 hover:bg-slate-50'
                             }`}
@@ -164,7 +164,7 @@ const AIPage = () => {
                     <button
                         type="button"
                         onClick={handleGetRecommendations}
-                        className={`rounded-lg px-4 py-2 text-sm font-medium transition ${viewMode === 'recommendations'
+                        className={`rounded-md px-2.5 py-1.5 text-xs font-medium transition ${viewMode === 'recommendations'
                             ? 'bg-violet-600 text-white shadow-md'
                             : 'bg-white text-slate-700 hover:bg-slate-50'
                             }`}
