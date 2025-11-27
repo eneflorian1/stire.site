@@ -276,10 +276,13 @@ ${newsItems}
     .map(
       (article) => {
         const rawImageUrl = article.imageUrl as string;
-        const absoluteImageUrl =
+        let absoluteImageUrl =
           rawImageUrl.startsWith('http://') || rawImageUrl.startsWith('https://')
             ? rawImageUrl
             : `${BASE_URL}${rawImageUrl.startsWith('/') ? rawImageUrl : `/${rawImageUrl}`}`;
+
+        // Normalizează URL-ul imaginii (elimină www)
+        absoluteImageUrl = normalizeUrl(absoluteImageUrl);
 
         return `  <url>
     <loc>${encodeXml(normalizeUrl(article.url))}</loc>
