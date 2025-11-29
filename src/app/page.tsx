@@ -26,8 +26,27 @@ export default async function Home() {
     getCategories(),
     getBannerSettings(),
   ]);
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'stire.site',
+    url: 'https://stire.site',
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: {
+        '@type': 'EntryPoint',
+        urlTemplate: 'https://stire.site/articole?search={search_term_string}',
+      },
+      'query-input': 'required name=search_term_string',
+    },
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 pb-24 text-slate-900">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <SiteHeader />
       <main>
         <HomeShell articles={articles} categories={categories} banner={banner} />
