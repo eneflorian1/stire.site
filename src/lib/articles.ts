@@ -269,11 +269,22 @@ ${newsItems}
       lastmod: data.lastmod,
       priority: '0.6',
     }))
-    // Ordonăm categoriile după ultima modificare (data + ora), crescător.
     .sort(
       (a, b) =>
         new Date(a.lastmod ?? '').getTime() - new Date(b.lastmod ?? '').getTime()
     );
+
+  // Add homepage to categories sitemap
+  const latestUpdate = published.length > 0
+    ? (published[published.length - 1].updatedAt ?? published[published.length - 1].publishedAt)
+    : new Date().toISOString();
+
+  categoryEntries.push({
+    loc: BASE_URL,
+    lastmod: latestUpdate,
+    priority: '1.0',
+  });
+
   await writeXml(SITEMAP_FILES.categories, buildUrlset(categoryEntries));
 
   const articlesWithImages = published.filter((article) => Boolean(article.imageUrl));

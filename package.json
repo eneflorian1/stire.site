@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run rebuild:sitemaps && next build",
     "start": "next start",
     "lint": "eslint",
     "rebuild:sitemaps": "tsx scripts/rebuild-sitemaps.ts"
