@@ -87,8 +87,36 @@ export default async function ArticlePage({ params }: PageProps) {
     ? article.hashtags.split(',').map((tag) => tag.trim()).filter(Boolean)
     : [];
 
+  const baseUrl = 'https://stire.site';
+  const imageUrl = article.imageUrl
+    ? article.imageUrl.startsWith('http')
+      ? article.imageUrl
+      : `${baseUrl}${article.imageUrl.startsWith('/') ? '' : '/'}${article.imageUrl}`
+    : undefined;
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'NewsArticle',
+    headline: article.title,
+    image: imageUrl ? [imageUrl] : [],
+    datePublished: article.publishedAt,
+    dateModified: article.updatedAt || article.publishedAt,
+    author: [
+      {
+        '@type': 'Person',
+        name: 'stire.site',
+        url: 'https://stire.site',
+      },
+    ],
+    description: article.summary,
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <SiteHeader />
       <main className="mx-auto max-w-4xl px-4 pb-24 pt-8 sm:px-6 lg:px-0">
         <article className="space-y-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-10">
@@ -103,7 +131,7 @@ export default async function ArticlePage({ params }: PageProps) {
                 decoding="async"
               />
               <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-4">
-              {article.imageSourceUrl && (
+                {article.imageSourceUrl && (
                   <a
                     href={article.imageSourceUrl}
                     target="_blank"
@@ -119,7 +147,7 @@ export default async function ArticlePage({ params }: PageProps) {
                 >
                   {article.category}
                 </Link>
-                
+
               </div>
             </figure>
           )}
